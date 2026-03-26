@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+
+@theme {
+  --font-sans: "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --color-primary: #24389c;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #3f51b5;
+  --color-on-primary-container: #cacfff;
+  --color-secondary: #565c84;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #c9cffd;
+  --color-on-secondary-container: #51577f;
+  --color-tertiary: #6c3400;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #8f4700;
+  --color-on-tertiary-container: #ffc7a2;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-surface: #f9f9fb;
+  --color-on-surface: #1a1c1d;
+  --color-surface-variant: #e2e2e4;
+  --color-on-surface-variant: #454652;
+  --color-outline: #757684;
+  --color-surface-container-low: #f3f3f5;
+  --color-surface-container-high: #e8e8ea;
+  --color-surface-container-highest: #e2e2e4;
+  --color-surface-container-lowest: #ffffff;
+}
+
+@layer utilities {
+  .editorial-asymmetry {
+    margin-left: clamp(0rem, 5vw, 4rem);
+  }
+  .editorial-shadow {
+    box-shadow: 0 12px 40px rgba(26, 28, 29, 0.06);
+  }
+  .asymmetric-clip {
+    border-radius: 1.5rem 0.25rem 1.5rem 0.25rem;
+  }
+  .glass-nav {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .destination-float-image {
+    border-top-left-radius: 1.5rem;
+    border-bottom-right-radius: 1.5rem;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-sans;
+  }
+}
+
+.glass {
+  @apply bg-white/70 backdrop-blur-md border border-white/20;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

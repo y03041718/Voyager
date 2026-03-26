@@ -1,0 +1,5 @@
+{
+  "name": "Voyager",
+  "description": "Your personalized travel companion for curated journeys and smart trip planning.",
+  "requestFramePermissions": ["geolocation"]
+}
