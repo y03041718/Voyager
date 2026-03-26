@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Destination } from './types';
+import { Destination, TravelPlanResponse } from './types';
 
 interface TripDetails {
   startDate: string;
@@ -10,16 +10,22 @@ interface TripDetails {
 
 interface SelectionContextType {
   selectedDestinations: Destination[];
+  allSearchResults: Destination[];  // 所有搜索到的POI
   tripDetails: TripDetails;
+  generatedPlan: TravelPlanResponse | null;
   toggleSelection: (destination: Destination) => void;
   clearSelection: () => void;
   updateTripDetails: (details: Partial<TripDetails>) => void;
+  setGeneratedPlan: (plan: TravelPlanResponse | null) => void;
+  setAllSearchResults: (results: Destination[]) => void;  // 设置所有搜索结果
 }
 
 const SelectionContext = createContext<SelectionContextType | undefined>(undefined);
 
 export const SelectionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [selectedDestinations, setSelectedDestinations] = useState<Destination[]>([]);
+  const [allSearchResults, setAllSearchResults] = useState<Destination[]>([]);
+  const [generatedPlan, setGeneratedPlan] = useState<TravelPlanResponse | null>(null);
   const [tripDetails, setTripDetails] = useState<TripDetails>({
     startDate: '',
     endDate: '',
@@ -46,11 +52,15 @@ export const SelectionProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   return (
     <SelectionContext.Provider value={{ 
-      selectedDestinations, 
+      selectedDestinations,
+      allSearchResults,
       tripDetails, 
+      generatedPlan,
       toggleSelection, 
       clearSelection,
-      updateTripDetails 
+      updateTripDetails,
+      setGeneratedPlan,
+      setAllSearchResults
     }}>
       {children}
     </SelectionContext.Provider>

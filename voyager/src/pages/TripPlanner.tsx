@@ -3,10 +3,12 @@ import { MapPin, Calendar, Users, Compass, ArrowRight, ChevronLeft, Sparkles, Wa
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useSelection } from '../SelectionContext';
+import { apiService } from '../services/api';
+import { TripPlanRequest } from '../types';
 
 const TripPlanner: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedDestinations, toggleSelection, tripDetails, updateTripDetails } = useSelection();
+  const { selectedDestinations, allSearchResults, toggleSelection, tripDetails, updateTripDetails, setGeneratedPlan } = useSelection();
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const totalSteps = 4;
@@ -22,10 +24,100 @@ const TripPlanner: React.FC = () => {
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    // Simulate AI generation delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsGenerating(false);
-    navigate('/itinerary');
+    
+    try {
+      // 提取目的地城市 - 改进逻辑
+      const firstPlace = selectedDestinations.find(d => d.address);
+      let destination = '未知城市';
+      if (firstPlace?.address) {
+        // 尝试从地址中提取城市名（支持多种格式）
+        // 格式1: "福建省福州市鼓楼区..." -> "福州市"
+        // 格式2: "北京市朝阳区..." -> "北京市"
+        // 格式3: "上海市黄浦区..." -> "上海市"
+        // 格式4: "西藏自治区拉萨市..." -> "拉萨市"
+        const address = firstPlace.address;
+        
+        // 先尝试匹配 "XX市"
+        const cityMatch = address.match(/([^省]+?市)/);
+        if (cityMatch) {
+          destination = cityMatch[1];
+        } else {
+          // 如果没有"市"，尝试匹配自治州或特别行政区
+          const specialMatch = address.match(/([^省]+?自治州)|([^省]+?特别行政区)/);
+          if (specialMatch) {
+            destination = specialMatch[0];
+          } else {
+            // 最后尝试提取省级单位
+            const provinceMatch = address.match(/^(.+?[省市区])/);
+            if (provinceMatch) {
+              destination = provinceMatch[1];
+            }
+          }
+        }
+      }
+      
+      console.log('原始地址:', firstPlace?.address);
+      console.log('提取的城市名:', destination);
+      
+      // 构建请求数据
+      const request: TripPlanRequest = {
+        destination,
+        startDate: tripDetails.startDate,
+        endDate: tripDetails.endDate,
+        travelers: tripDetails.travelers,
+        style: tripDetails.style,
+        selectedPlaces: selectedDestinations.map(dest => ({
+          id: dest.id,
+          name: dest.name,
+          type: dest.type,
+          address: dest.address || '',
+          rating: dest.rating,
+          starLevel: dest.starLevel,
+          level: dest.level,
+          cost: dest.cost,
+          location: dest.location || { lat: 0, lng: 0 },
+          image: dest.image,
+          tel: dest.tags?.find(t => t.startsWith('tel:'))?.substring(4)
+        })),
+        // 传递所有搜索结果（排除已选中的）
+        availablePlaces: allSearchResults
+          .filter(poi => !selectedDestinations.find(s => s.id === poi.id))
+          .map(dest => ({
+            id: dest.id,
+            name: dest.name,
+            type: dest.type,
+            address: dest.address || '',
+            rating: dest.rating,
+            starLevel: dest.starLevel,
+            level: dest.level,
+            cost: dest.cost,
+            location: dest.location || { lat: 0, lng: 0 },
+            image: dest.image,
+            tel: dest.tags?.find(t => t.startsWith('tel:'))?.substring(4)
+          }))
+      };
+      
+      console.log('准备生成旅行计划:', request);
+      console.log('已选POI数量:', request.selectedPlaces.length);
+      console.log('可选POI数量:', request.availablePlaces?.length || 0);
+      
+      // 调用API生成行程
+      const plan = await apiService.generateTripPlan(request);
+      
+      console.log('行程生成成功:', plan);
+      console.log('返回的城市名:', plan.destination);
+      
+      // 保存生成的行程
+      setGeneratedPlan(plan);
+      
+      // 跳转到行程页面
+      navigate('/itinerary');
+    } catch (error) {
+      console.error('生成行程失败:', error);
+      alert('生成行程失败，请稍后重试：' + (error as Error).message);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (

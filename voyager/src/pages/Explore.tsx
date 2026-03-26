@@ -8,7 +8,7 @@ import { apiService } from '../services/api';
 import { AmapSearchSuggestion, AmapPOI, SearchAllResponse } from '../types';
 
 const Explore: React.FC = () => {
-  const { selectedDestinations, toggleSelection } = useSelection();
+  const { selectedDestinations, toggleSelection, setAllSearchResults: saveAllSearchResults } = useSelection();
   const [activeCategory, setActiveCategory] = useState('酒店');
   const [allSearchResults, setAllSearchResults] = useState<SearchAllResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,6 +65,16 @@ const Explore: React.FC = () => {
       console.log('餐厅数量:', results.restaurants?.length || 0);
       
       setAllSearchResults(results);
+      
+      // 保存所有搜索结果到Context，供生成行程时使用
+      const allDestinations = [
+        ...(results.hotels || []).map(poi => convertAmapPOIToDestination(poi, 'hotel')),
+        ...(results.attractions || []).map(poi => convertAmapPOIToDestination(poi, 'attraction')),
+        ...(results.restaurants || []).map(poi => convertAmapPOIToDestination(poi, 'restaurant'))
+      ];
+      saveAllSearchResults(allDestinations);
+      console.log('已保存所有搜索结果到Context，共', allDestinations.length, '个POI');
+      
     } catch (error) {
       console.error('搜索失败:', error);
       // 搜索失败时显示模拟数据

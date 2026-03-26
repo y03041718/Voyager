@@ -1,4 +1,4 @@
-import { LoginRequest, RegisterRequest, AuthResponse, AmapSearchSuggestion, AmapPOI, SearchAllResponse } from '../types';
+import { LoginRequest, RegisterRequest, AuthResponse, AmapSearchSuggestion, AmapPOI, SearchAllResponse, TripPlanRequest, TravelPlanResponse, TripPlanSummary } from '../types';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -148,6 +148,63 @@ class ApiService {
     const data = await response.json();
     console.log('周边搜索响应数据:', data);
     return data;
+  }
+
+  // 旅行计划生成API
+  async generateTripPlan(request: TripPlanRequest): Promise<TravelPlanResponse> {
+    console.log('发起生成旅行计划请求:', request);
+
+    const response = await fetch(`${API_BASE_URL}/trip/generate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('生成旅行计划失败:', errorText);
+      throw new Error(errorText || '生成旅行计划失败');
+    }
+
+    const data = await response.json();
+    console.log('生成旅行计划响应:', data);
+    return data;
+  }
+
+  // 我的行程相关API
+  async getMyTripPlans(): Promise<TripPlanSummary[]> {
+    const response = await fetch(`${API_BASE_URL}/my-trips`, {
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error('获取旅行计划列表失败');
+    }
+
+    return response.json();
+  }
+
+  async getTripPlanDetail(id: number): Promise<TravelPlanResponse> {
+    const response = await fetch(`${API_BASE_URL}/my-trips/${id}`, {
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error('获取旅行计划详情失败');
+    }
+
+    return response.json();
+  }
+
+  async deleteTripPlan(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/my-trips/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error('删除旅行计划失败');
+    }
   }
 }
 

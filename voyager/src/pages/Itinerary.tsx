@@ -1,24 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Calendar, MapPin, Clock, MoreVertical, Share2, Printer, 
-  Download, ChevronRight, Cloud, Thermometer, Navigation,
-  Home, Star, Info, ExternalLink, ArrowLeft, Users2, Check
+  Calendar, Clock, Share2, Printer, 
+  Download, ChevronRight, Cloud, Navigation,
+  Home, Star, Info, ExternalLink, ArrowLeft, Users2, Check,
+  ChevronDown, Sparkles, UtensilsCrossed, Lightbulb
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSelection } from '../SelectionContext';
 import { useTeams } from '../TeamContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { apiService } from '../services/api';
+import { TravelPlanResponse } from '../types';
 
 const Itinerary: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedDestinations, tripDetails, generatedPlan } = useSelection();
+  const { id } = useParams<{ id: string }>();
+  const { selectedDestinations, tripDetails, generatedPlan, setGeneratedPlan } = useSelection();
   const { teams, sharePlan } = useTeams();
   const [showShareModal, setShowShareModal] = useState(false);
   const [sharedTeamId, setSharedTeamId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(1);
+  const [showLocalTips, setShowLocalTips] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loadedPlan, setLoadedPlan] = useState<TravelPlanResponse | null>(null);
+
+  // 如果有 ID 参数，从 API 加载计划
+  useEffect(() => {
+    if (id) {
+      loadPlanFromApi(parseInt(id));
+    }
+  }, [id]);
+
+  const loadPlanFromApi = async (planId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const plan = await apiService.getTripPlanDetail(planId);
+      setLoadedPlan(plan);
+      setGeneratedPlan(plan); // 同时更新 context
+    } catch (err) {
+      console.error('加载旅行计划失败:', err);
+      setError(err instanceof Error ? err.message : '加载失败');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleShare = (teamId: string) => {
-    // In a real app, we'd have a plan ID. For now, we'll use a mock one.
     sharePlan('current-trip', teamId, '我');
     setSharedTeamId(teamId);
     setTimeout(() => {
@@ -27,7 +56,37 @@ const Itinerary: React.FC = () => {
     }, 1500);
   };
 
-  if (!generatedPlan || selectedDestinations.length === 0) {
+  // 使用加载的计划或 context 中的计划
+  const currentPlan = loadedPlan || generatedPlan;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-on-surface-variant font-medium">加载行程中...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
+          <Calendar className="w-12 h-12 text-red-500" />
+        </div>
+        <h2 className="text-3xl font-black tracking-tighter text-on-surface mb-2">加载失败</h2>
+        <p className="text-on-surface-variant mb-8 max-w-md">{error}</p>
+        <button 
+          onClick={() => navigate('/my-guides')}
+          className="bg-primary text-white px-8 py-4 rounded-2xl font-black shadow-xl shadow-primary/20 hover:scale-105 transition-all flex items-center gap-2"
+        >
+          <ArrowLeft className="w-5 h-5" /> 返回我的行程
+        </button>
+      </div>
+    );
+  }
+
+  if (!currentPlan || (!id && selectedDestinations.length === 0)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
         <div className="w-24 h-24 bg-surface-variant rounded-full flex items-center justify-center mb-6 text-on-surface-variant">
@@ -46,11 +105,29 @@ const Itinerary: React.FC = () => {
   }
 
   // 获取当前选中天的行程
-  const currentDayPlan = generatedPlan.dayPlans.find(d => d.day === selectedDay) || generatedPlan.dayPlans[0];
+  const currentDayPlan = currentPlan.days.find(d => d.day === selectedDay) || currentPlan.days[0];
+  
+  // 过滤掉酒店类型的计划（酒店在右侧单独展示）
+  const filteredPlans = currentDayPlan?.plans?.filter(plan => plan.type !== 'hotel') || [];
   
   // Group destinations by type for the sidebar
   const hotels = selectedDestinations.filter(d => d.type === 'hotel');
-  const weather = generatedPlan.weather;
+  
+  // 获取当前天的天气信息（从AI生成的数据中）
+  const weatherInfo = currentDayPlan?.weather || null;
+  
+  // 获取当前天的当地特色与提示
+  const localTips = currentDayPlan?.localTips || null;
+  
+  // 构建标题和日期范围 - 从后端返回的数据中获取城市名
+  const tripTitle = generatedPlan.destination || selectedDestinations[0]?.address?.match(/(.+?[市区县])/)?.[1] || '未知城市';
+  const dateRange = tripDetails.startDate && tripDetails.endDate 
+    ? `${tripDetails.startDate} - ${tripDetails.endDate}` 
+    : '未设置日期';
+  
+  console.log('当前选中天:', selectedDay);
+  console.log('当前天计划:', currentDayPlan);
+  console.log('过滤后的计划数量:', filteredPlans.length);
 
   return (
     <div className="bg-[#f8f9fa] min-h-screen">
@@ -63,18 +140,18 @@ const Itinerary: React.FC = () => {
               <span>AI 智能生成行程</span>
             </div>
             <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-on-surface mb-6 leading-[0.9]">
-              {generatedPlan.title}
+              {tripTitle} 之旅
             </h1>
             <div className="flex flex-wrap items-center gap-6 text-on-surface-variant text-sm font-bold">
               <span className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
                 <Calendar className="w-4 h-4 text-primary" /> 
-                {generatedPlan.dateRange}
+                {dateRange}
               </span>
               <span className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
-                <Users className="w-4 h-4 text-primary" /> {generatedPlan.travelers}
+                <Users className="w-4 h-4 text-primary" /> {tripDetails.travelers}
               </span>
               <span className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
-                <Compass className="w-4 h-4 text-primary" /> {generatedPlan.style}
+                <Compass className="w-4 h-4 text-primary" /> {tripDetails.style}
               </span>
             </div>
           </div>
@@ -101,7 +178,7 @@ const Itinerary: React.FC = () => {
             <div className="flex items-center justify-between mb-12">
               <h2 className="text-3xl font-black tracking-tighter">每日行程安排</h2>
               <div className="flex gap-2">
-                {generatedPlan.dayPlans.map(dayPlan => (
+                {generatedPlan.days.map(dayPlan => (
                   <button 
                     key={dayPlan.day} 
                     onClick={() => setSelectedDay(dayPlan.day)}
@@ -115,13 +192,15 @@ const Itinerary: React.FC = () => {
               </div>
             </div>
 
+
+
             <div className="relative space-y-16">
               {/* Vertical Line */}
               <div className="absolute left-8 top-0 bottom-0 w-px bg-gray-200" />
 
-              {currentDayPlan.activities.map((activity, idx) => (
+              {filteredPlans.map((plan, idx) => (
                 <motion.div 
-                  key={activity.id + idx}
+                  key={plan.id || idx}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -134,10 +213,10 @@ const Itinerary: React.FC = () => {
                   {/* Time & Category */}
                   <div className="flex items-center gap-3 mb-6">
                     <span className="text-sm font-black text-primary tracking-widest uppercase">
-                      {activity.time}
+                      {plan.time}
                     </span>
                     <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-full uppercase tracking-widest">
-                      {activity.type === 'hotel' ? '住宿' : activity.type === 'attraction' ? '景点' : '美食'}
+                      {plan.type === 'hotel' ? '住宿' : plan.type === 'attraction' ? '景点' : '美食'}
                     </span>
                   </div>
 
@@ -146,46 +225,48 @@ const Itinerary: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                       <div className="order-2 md:order-1">
                         <h3 className="text-4xl font-black tracking-tighter mb-4 group-hover:text-primary transition-colors">
-                          {activity.title}
+                          {plan.name}
                         </h3>
                         <p className="text-on-surface-variant leading-relaxed mb-6 font-medium">
-                          {activity.description}
+                          {plan.desc}
                         </p>
                         <div className="flex items-center gap-6 mb-4">
-                          <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                            <span className="text-sm font-black">{activity.rating.toFixed(1)}</span>
-                          </div>
-                          {activity.duration && (
+                          {plan.rating && (
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                              <span className="text-sm font-black">{plan.rating.toFixed(1)}</span>
+                            </div>
+                          )}
+                          {plan.duration && (
                             <div className="flex items-center gap-1 text-on-surface-variant">
                               <Clock className="w-4 h-4" />
-                              <span className="text-sm font-bold">{activity.duration}</span>
+                              <span className="text-sm font-bold">{plan.duration}</span>
                             </div>
                           )}
                         </div>
-                        {activity.tip && (
-                          <div className="bg-primary/5 border-l-4 border-primary p-4 rounded-r-xl">
-                            <p className="text-sm text-on-surface-variant font-medium">💡 {activity.tip}</p>
+                        {plan.address && (
+                          <div className="bg-primary/5 border-l-4 border-primary p-4 rounded-r-xl mb-4">
+                            <p className="text-sm text-on-surface-variant font-medium">� {plan.address}</p>
                           </div>
                         )}
                       </div>
                       <div className="order-1 md:order-2 relative">
                         <div className="aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl transform group-hover:scale-[1.02] transition-transform duration-700">
                           <img 
-                            src={activity.image} 
-                            alt={activity.title}
+                            src={plan.image || `https://picsum.photos/seed/${plan.name}/800/600`}
+                            alt={plan.name}
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
                           />
                         </div>
-                        {activity.duration && (
+                        {plan.duration && (
                           <div className="absolute -bottom-4 -right-4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3">
                             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                               <Info className="w-5 h-5" />
                             </div>
                             <div>
                               <p className="text-[10px] font-black text-outline uppercase tracking-widest">建议时长</p>
-                              <p className="text-sm font-black">{activity.duration}</p>
+                              <p className="text-sm font-black">{plan.duration}</p>
                             </div>
                           </div>
                         )}
@@ -197,8 +278,67 @@ const Itinerary: React.FC = () => {
             </div>
           </div>
 
+
           {/* Sidebar Tools - Right Column */}
           <div className="lg:col-span-4 space-y-8">
+            {/* Local Tips - 当地特色与提示 */}
+            {localTips && (
+                <div className="mb-12 bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
+                  <button
+                      onClick={() => setShowLocalTips(!showLocalTips)}
+                      className="w-full flex items-center justify-between mb-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xl font-black tracking-tight text-on-surface">行前必读</h3>
+                    </div>
+                    {showLocalTips ? (
+                          <Sparkles className="w-6 h-6" />
+                    ) : (
+                        <ChevronDown className="w-6 h-6 bg-primary/10 rounded-2xl flex items-center justify-center text-primary" />
+                    )}
+                  </button>
+
+                  {showLocalTips && (
+                      <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-4 pt-4"
+                      >
+                        <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-2xl">
+                          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Sparkles className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-on-surface mb-1">风土人情</h4>
+                            <p className="text-sm text-on-surface-variant font-medium">{localTips.culture}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-4 p-4 bg-orange-50 rounded-2xl">
+                          <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <UtensilsCrossed className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-on-surface mb-1">舌尖推荐</h4>
+                            <p className="text-sm text-on-surface-variant font-medium">{localTips.food}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-4 p-4 bg-green-50 rounded-2xl">
+                          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Lightbulb className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-on-surface mb-1">实用提示</h4>
+                            <p className="text-sm text-on-surface-variant font-medium">{localTips.tips}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                  )}
+                </div>
+            )}
+
             {/* Map Card */}
             <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-6">
@@ -236,22 +376,23 @@ const Itinerary: React.FC = () => {
                 <h3 className="text-xl font-black tracking-tight">当地天气</h3>
                 <Cloud className="w-6 h-6 text-primary" />
               </div>
-              <div className="flex items-center gap-6 mb-8">
-                <span className="text-6xl font-black tracking-tighter">24°</span>
-                <div>
-                  <p className="text-lg font-bold">晴朗</p>
-                  <p className="text-white/60 text-sm font-medium">体感温度 26°</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {['周一', '周二', '周三', '周四'].map((day, i) => (
-                  <div key={i} className="text-center p-2 rounded-xl bg-white/10">
-                    <p className="text-[10px] font-bold opacity-60 mb-1">{day}</p>
-                    <Thermometer className="w-4 h-4 mx-auto mb-1 text-primary" />
-                    <p className="text-xs font-black">22°</p>
+              {weatherInfo ? (
+                <div className="flex items-center gap-6">
+                  <span className="text-6xl font-black tracking-tighter">{weatherInfo.temperature}°</span>
+                  <div>
+                    <p className="text-lg font-bold">{weatherInfo.condition}</p>
+                    <p className="text-white/60 text-sm font-medium">体感温度 {weatherInfo.feelsLike}°</p>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-6">
+                  <span className="text-6xl font-black tracking-tighter">24°</span>
+                  <div>
+                    <p className="text-lg font-bold">晴朗</p>
+                    <p className="text-white/60 text-sm font-medium">体感温度 26°</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Accommodation Card */}
@@ -272,7 +413,7 @@ const Itinerary: React.FC = () => {
                       />
                     </div>
                     <h4 className="font-black text-lg mb-1 group-hover:text-primary transition-colors">{hotel.name}</h4>
-                    <p className="text-sm text-on-surface-variant font-medium mb-4">{hotel.location}</p>
+                    <p className="text-sm text-on-surface-variant font-medium mb-4">{hotel.address || '地址未知'}</p>
                     <button className="w-full py-3 bg-surface-variant rounded-xl font-black text-sm hover:bg-primary/10 hover:text-primary transition-all">
                       查看订单详情
                     </button>

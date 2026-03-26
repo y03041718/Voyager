@@ -36,6 +36,12 @@ amap:
   key: e40d885910a08c8778e9e6414b882819
   base-url: https://restapi.amap.com/v3
 
+# Qwen API配置
+qwen:
+  api-key: sk-cfeca3db851d477ebba55722f0a91521
+  api-url: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+  model: qwen3-32b
+
 # 跨域配置
 cors:
   allowed-origins: http://localhost:3000

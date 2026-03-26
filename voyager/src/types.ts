@@ -106,3 +106,112 @@ export interface SearchAllResponse {
   attractions: AmapPOI[];
   restaurants: AmapPOI[];
 }
+
+// 旅行计划生成相关类型（新格式）
+export interface TripPlanRequest {
+  destination: string;
+  startDate: string;
+  endDate: string;
+  travelers: string;
+  style: string;
+  selectedPlaces: SelectedPlace[];  // 用户选中的POI（必选）
+  availablePlaces?: SelectedPlace[]; // 所有可用的POI（供AI选择）
+}
+
+export interface SelectedPlace {
+  id: string;
+  name: string;
+  type: 'hotel' | 'attraction' | 'restaurant';
+  address: string;
+  rating: number;
+  starLevel?: string;
+  level?: string;
+  cost?: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  image?: string;  // 图片URL
+  tel?: string;    // 电话
+}
+
+// 新的响应格式
+export interface TravelPlanResponse {
+  destination?: string;  // 目的地城市名
+  days: TravelDayPlan[];
+}
+
+export interface TravelDayPlan {
+  day: number;
+  date: string;
+  plans: TravelPlan[];
+  weather?: WeatherInfo;  // 每日天气信息
+  localTips?: LocalTips;  // 当地特色与提示
+}
+
+export interface WeatherInfo {
+  temperature: string;    // 温度，如 "24"
+  condition: string;      // 天气状况，如 "晴朗"
+  feelsLike: string;      // 体感温度，如 "26"
+}
+
+export interface LocalTips {
+  culture: string;   // 文化特色
+  food: string;      // 美食特色
+  tips: string;      // 旅行提示
+}
+
+export interface TravelPlan {
+  time: string;
+  type: string;
+  name: string;
+  desc: string;
+  duration: string;
+  // 从POI获取的完整信息
+  id?: string;
+  image?: string;
+  rating?: number;
+  address?: string;
+  starLevel?: string;
+  level?: string;
+  cost?: string;
+  tel?: string;
+}
+
+// 旧的响应格式（保留兼容）
+export interface TripPlanResponse {
+  itinerary: string;
+  dayPlans: DayPlanDetail[];
+}
+
+export interface DayPlanDetail {
+  day: number;
+  date: string;
+  subtitle: string;
+  activities: ActivityDetail[];
+}
+
+export interface ActivityDetail {
+  id: string;
+  time: string;
+  title: string;
+  description: string;
+  type: string;
+  image: string;
+  location?: string;
+  address?: string;
+  rating?: number;
+  duration?: string;
+  tip?: string;
+}
+
+// 我的行程列表相关类型
+export interface TripPlanSummary {
+  id: number;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  travelers: string;
+  style: string;
+  createdAt: string;
+}

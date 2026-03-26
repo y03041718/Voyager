@@ -55,7 +55,7 @@ public class AmapService {
         try {
             WebClient webClient = webClientBuilder.build();
 
-            String url = baseUrl + "/place/text?key={key}&keywords={keywords}&types={types}&city={city}&children=0&offset=9&page=1&extensions=all";
+            String url = baseUrl + "/place/text?key={key}&keywords={keywords}&types={types}&city={city}&children=0&offset=24&page=1&extensions=all";
 
             log.info("开始POI搜索 - keyword: {}, city: {}, types: {}", keyword, city, types);
 
@@ -87,7 +87,7 @@ public class AmapService {
             String location = lng + "," + lat; // 高德地图使用经度,纬度的格式
 
             String response = webClient.get()
-                    .uri(baseUrl + "/place/around?key={key}&location={location}&types={types}&radius={radius}&offset=9&page=1&extensions=all",
+                    .uri(baseUrl + "/place/around?key={key}&location={location}&types={types}&radius={radius}&offset=24&page=1&extensions=all",
                             amapKey, location, types, radius)
                     .retrieve()
                     .bodyToMono(String.class)

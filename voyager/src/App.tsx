@@ -50,6 +50,14 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
+            path="/itinerary/:id"
+            element={
+              <ProtectedRoute>
+                <Itinerary />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/guides"
             element={
               <ProtectedRoute>
