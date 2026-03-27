@@ -56,6 +56,11 @@ const Itinerary: React.FC = () => {
     }, 1500);
   };
 
+  // 打印处理函数
+  const handlePrint = () => {
+    window.print();
+  };
+
   // 使用加载的计划或 context 中的计划
   const currentPlan = loadedPlan || generatedPlan;
 
@@ -120,7 +125,7 @@ const Itinerary: React.FC = () => {
   const localTips = currentDayPlan?.localTips || null;
   
   // 构建标题和日期范围 - 从后端返回的数据中获取城市名
-  const tripTitle = generatedPlan.destination || selectedDestinations[0]?.address?.match(/(.+?[市区县])/)?.[1] || '未知城市';
+  const tripTitle = generatedPlan.destination || selectedDestinations[0]?.address?.match(/(.+?[市区县])/)?.[1] || 'bbb';
   const dateRange = tripDetails.startDate && tripDetails.endDate 
     ? `${tripDetails.startDate} - ${tripDetails.endDate}` 
     : '未设置日期';
@@ -156,18 +161,18 @@ const Itinerary: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-3 no-print">
             <button 
               onClick={() => setShowShareModal(true)}
               className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-on-surface shadow-sm hover:shadow-md transition-all"
             >
               <Share2 className="w-6 h-6" />
             </button>
-            <button className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-on-surface shadow-sm hover:shadow-md transition-all">
-              <Printer className="w-6 h-6" />
-            </button>
-            <button className="bg-on-surface text-white px-8 h-14 rounded-2xl font-black flex items-center gap-3 hover:bg-primary transition-all shadow-lg">
-              <Download className="w-5 h-5" /> 导出 PDF
+            <button 
+              onClick={handlePrint}
+              className="bg-on-surface text-white px-8 h-14 rounded-2xl font-black flex items-center gap-3 hover:bg-primary transition-all shadow-lg"
+            >
+              <Printer className="w-6 h-6" /> 打印/导出PDF
             </button>
           </div>
         </header>
@@ -177,7 +182,7 @@ const Itinerary: React.FC = () => {
           <div className="lg:col-span-8">
             <div className="flex items-center justify-between mb-12">
               <h2 className="text-3xl font-black tracking-tighter">每日行程安排</h2>
-              <div className="flex gap-2">
+              <div className="flex gap-2 no-print">
                 {generatedPlan.days.map(dayPlan => (
                   <button 
                     key={dayPlan.day} 
@@ -192,8 +197,7 @@ const Itinerary: React.FC = () => {
               </div>
             </div>
 
-
-
+            {/* 打印时显示所有天数，屏幕上只显示选中的天 */}
             <div className="relative space-y-16">
               {/* Vertical Line */}
               <div className="absolute left-8 top-0 bottom-0 w-px bg-gray-200" />

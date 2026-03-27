@@ -102,21 +102,7 @@ const Login: React.FC = () => {
                 />
               </div>
               
-              {/* Team Name Field (只在注册时显示) */}
-              {!isLogin && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-on-surface-variant ml-1" htmlFor="teamName">小组名称（可选）</label>
-                  <input 
-                    className="w-full px-4 py-3.5 bg-surface-container-low border-transparent rounded-lg focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-all duration-200 outline-none placeholder:text-outline" 
-                    id="teamName" 
-                    name="teamName" 
-                    placeholder="请输入小组名称" 
-                    type="text"
-                    value={formData.teamName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              )}
+
               
               {/* Password Field */}
               <div className="space-y-2">

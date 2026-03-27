@@ -34,6 +34,8 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
             AuthResponse response = userService.login(request);
+            log.info("登录成功，返回token: {}", response.getToken() != null ? "存在" : "null");
+            log.info("返回响应: {}", response);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("登录失败", e);

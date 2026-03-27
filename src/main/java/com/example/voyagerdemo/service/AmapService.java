@@ -352,4 +352,57 @@ public class AmapService {
 
         return null;
     }
+
+    /**
+     * 根据经纬度获取城市名（逆地理编码）
+     */
+    public String getCityFromLocation(Double lng, Double lat) {
+        try {
+            WebClient webClient = webClientBuilder.build();
+
+            String location = lng + "," + lat;
+
+            String response = webClient.get()
+                    .uri(baseUrl + "/geocode/regeo?key={key}&location={location}&extensions=base",
+                            amapKey, location)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            return parseCityFromRegeoResponse(response);
+        } catch (Exception e) {
+            log.error("逆地理编码失败: lng={}, lat={}", lng, lat, e);
+            return null;
+        }
+    }
+
+    private String parseCityFromRegeoResponse(String response) {
+        try {
+            JsonNode root = objectMapper.readTree(response);
+
+            String status = root.has("status") ? root.get("status").asText() : "unknown";
+            if (!"1".equals(status)) {
+                log.error("逆地理编码API返回错误: {}", root.has("info") ? root.get("info").asText() : "未知错误");
+                return null;
+            }
+
+            JsonNode regeocode = root.get("regeocode");
+            if (regeocode != null && regeocode.has("addressComponent")) {
+                JsonNode addressComponent = regeocode.get("addressComponent");
+
+                // 优先获取city，如果为空则使用province（处理直辖市情况）
+                String city = addressComponent.has("city") ? addressComponent.get("city").asText() : "";
+                if (city.isEmpty() || "[]".equals(city)) {
+                    city = addressComponent.has("province") ? addressComponent.get("province").asText() : "";
+                }
+
+                log.info("逆地理编码获取城市: {}", city);
+                return city.isEmpty() ? null : city;
+            }
+        } catch (Exception e) {
+            log.error("解析逆地理编码响应失败", e);
+        }
+
+        return null;
+    }
 }

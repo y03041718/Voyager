@@ -57,7 +57,7 @@ public class QwenService {
             
             // 参数设置
             requestBody.put("max_tokens", 3000);
-            requestBody.put("temperature", 0.7);
+            requestBody.put("temperature", 0.5);
             requestBody.put("enable_thinking", false);
 
             log.debug("请求体: {}", requestBody.toString());

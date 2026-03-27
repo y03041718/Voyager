@@ -215,3 +215,68 @@ export interface TripPlanSummary {
   style: string;
   createdAt: string;
 }
+
+
+// 用户资料管理相关类型
+export interface UserProfile {
+  id: number;
+  username: string;
+  nickname?: string;
+  email?: string;
+  phone?: string;
+  avatarUrl?: string;
+  teamName?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface UpdateProfileRequest {
+  nickname?: string;
+  email?: string;
+  phone?: string;
+  avatarUrl?: string;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+}
+
+// 团队管理相关类型
+export interface CreateTeamRequest {
+  name: string;
+  description?: string;
+  avatarUrl?: string;
+}
+
+export interface UpdateTeamRequest {
+  name?: string;
+  description?: string;
+  avatarUrl?: string;
+}
+
+export interface AddTeamMemberRequest {
+  username: string;
+}
+
+export interface TeamMemberInfo {
+  id: number;
+  userId: number;
+  username: string;
+  nickname?: string;
+  avatarUrl?: string;
+  role: 'creator' | 'member';
+  joinedAt: string;
+}
+
+export interface TeamDetail {
+  id: number;
+  name: string;
+  description?: string;
+  avatarUrl?: string;
+  creatorId: number;
+  creatorName: string;
+  createdAt: string;
+  updatedAt?: string;
+  members: TeamMemberInfo[];
+}

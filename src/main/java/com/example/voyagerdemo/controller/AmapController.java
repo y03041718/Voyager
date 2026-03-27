@@ -153,6 +153,26 @@ public class AmapController {
     }
     
     /**
+     * 根据经纬度获取城市名
+     */
+    @GetMapping("/city")
+    public ResponseEntity<String> getCityName(
+            @RequestParam Double lat,
+            @RequestParam Double lng) {
+        try {
+            String city = amapService.getCityFromLocation(lng, lat);
+            if (city != null) {
+                return ResponseEntity.ok(city);
+            } else {
+                return ResponseEntity.ok("未知城市");
+            }
+        } catch (Exception e) {
+            log.error("获取城市名失败: lat={}, lng={}", lat, lng, e);
+            return ResponseEntity.ok("未知城市");
+        }
+    }
+
+    /**
      * 测试高德API连接
      */
     @GetMapping("/test")

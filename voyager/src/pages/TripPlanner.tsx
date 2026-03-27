@@ -26,38 +26,25 @@ const TripPlanner: React.FC = () => {
     setIsGenerating(true);
     
     try {
-      // 提取目的地城市 - 改进逻辑
-      const firstPlace = selectedDestinations.find(d => d.address);
+      // 使用高德逆地理编码API获取城市名
       let destination = '未知城市';
-      if (firstPlace?.address) {
-        // 尝试从地址中提取城市名（支持多种格式）
-        // 格式1: "福建省福州市鼓楼区..." -> "福州市"
-        // 格式2: "北京市朝阳区..." -> "北京市"
-        // 格式3: "上海市黄浦区..." -> "上海市"
-        // 格式4: "西藏自治区拉萨市..." -> "拉萨市"
-        const address = firstPlace.address;
-        
-        // 先尝试匹配 "XX市"
-        const cityMatch = address.match(/([^省]+?市)/);
-        if (cityMatch) {
-          destination = cityMatch[1];
-        } else {
-          // 如果没有"市"，尝试匹配自治州或特别行政区
-          const specialMatch = address.match(/([^省]+?自治州)|([^省]+?特别行政区)/);
-          if (specialMatch) {
-            destination = specialMatch[0];
-          } else {
-            // 最后尝试提取省级单位
-            const provinceMatch = address.match(/^(.+?[省市区])/);
-            if (provinceMatch) {
-              destination = provinceMatch[1];
+      const firstPlace = selectedDestinations[0];
+      
+      if (firstPlace?.location) {
+        try {
+          destination = await apiService.getCityName(firstPlace.location.lat, firstPlace.location.lng);
+          console.log('通过逆地理编码获取城市名:', destination);
+        } catch (error) {
+          console.error('获取城市名失败，使用降级方案:', error);
+          // 降级方案：从地址提取
+          if (firstPlace.address) {
+            const cityMatch = firstPlace.address.match(/([^省]+?市)/);
+            if (cityMatch) {
+              destination = cityMatch[1];
             }
           }
         }
       }
-      
-      console.log('原始地址:', firstPlace?.address);
-      console.log('提取的城市名:', destination);
       
       // 构建请求数据
       const request: TripPlanRequest = {

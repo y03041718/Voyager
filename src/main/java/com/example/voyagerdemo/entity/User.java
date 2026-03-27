@@ -31,6 +31,18 @@ public class User implements UserDetails {
     @Column(name = "team_name")
     private String teamName;
     
+    @Column(name = "avatar_url", columnDefinition = "LONGTEXT", length = Integer.MAX_VALUE)
+    private String avatarUrl;
+    
+    @Column(length = 100)
+    private String nickname;
+    
+    @Column(length = 100)
+    private String email;
+    
+    @Column(length = 20)
+    private String phone;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
@@ -113,5 +125,37 @@ public class User implements UserDetails {
 
     public void setActive(Boolean active) {
         isActive = active;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 }

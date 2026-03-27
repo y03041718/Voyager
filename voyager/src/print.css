@@ -1,0 +1,421 @@
+/* 打印样式优化 - 修复布局和比例问题 */
+@media print {
+  /* ========== 基础设置 ========== */
+  * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  html, body {
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    font-size: 10pt !important;
+    line-height: 1.4 !important;
+  }
+
+  /* ========== 页面设置 ========== */
+  @page {
+    size: A4 portrait;
+    margin: 10mm 8mm;
+  }
+
+  /* ========== 隐藏不需要打印的元素 ========== */
+  .no-print,
+  button:not(.keep-print),
+  nav,
+  .navbar,
+  .share-modal,
+  .export-options,
+  header .flex.gap-3 {
+    display: none !important;
+  }
+
+  /* ========== 容器宽度修复 ========== */
+  .max-w-7xl,
+  .max-w-6xl,
+  .max-w-5xl,
+  .max-w-4xl,
+  .max-w-3xl,
+  .max-w-2xl {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* ========== 网格布局修复 ========== */
+  .grid {
+    display: block !important;
+  }
+
+  .grid-cols-1,
+  .grid-cols-2,
+  .grid-cols-3,
+  .lg\:grid-cols-12 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .lg\:col-span-8,
+  .lg\:col-span-4,
+  .md\:col-span-6 {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-column: auto !important;
+  }
+
+  /* ========== 标题优化 ========== */
+  h1 {
+    font-size: 20pt !important;
+    margin-bottom: 8pt !important;
+    page-break-after: avoid !important;
+  }
+
+  h2 {
+    font-size: 16pt !important;
+    margin-top: 12pt !important;
+    margin-bottom: 6pt !important;
+    page-break-after: avoid !important;
+  }
+
+  h3 {
+    font-size: 13pt !important;
+    margin-top: 8pt !important;
+    margin-bottom: 4pt !important;
+    page-break-after: avoid !important;
+  }
+
+  h4 {
+    font-size: 11pt !important;
+    margin-top: 6pt !important;
+    margin-bottom: 3pt !important;
+  }
+
+  /* ========== 间距优化 ========== */
+  .px-4,
+  .px-6,
+  .px-8,
+  .px-12 {
+    padding-left: 4mm !important;
+    padding-right: 4mm !important;
+  }
+
+  .py-4,
+  .py-6,
+  .py-8,
+  .py-12,
+  .py-24 {
+    padding-top: 3mm !important;
+    padding-bottom: 3mm !important;
+  }
+
+  .mb-16,
+  .mb-12 {
+    margin-bottom: 6mm !important;
+  }
+
+  .mb-8,
+  .mb-6 {
+    margin-bottom: 3mm !important;
+  }
+
+  .mt-16,
+  .mt-12 {
+    margin-top: 6mm !important;
+  }
+
+  .gap-12,
+  .gap-8 {
+    gap: 3mm !important;
+  }
+
+  /* ========== 图片优化 ========== */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid !important;
+    display: block !important;
+  }
+
+  .aspect-\[4\/5\],
+  .aspect-video,
+  .aspect-square {
+    aspect-ratio: auto !important;
+    max-height: 60mm !important;
+  }
+
+  /* 隐藏装饰性图片和地图 */
+  .aspect-square.bg-surface-variant,
+  .aspect-square {
+    display: none !important;
+  }
+
+  /* ========== 卡片和容器优化 ========== */
+  .rounded-2xl,
+  .rounded-3xl,
+  .rounded-\[2rem\],
+  .rounded-\[2\.5rem\] {
+    border-radius: 3mm !important;
+  }
+
+  .rounded-full {
+    border-radius: 50% !important;
+  }
+
+  .shadow,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl,
+  .shadow-2xl {
+    box-shadow: none !important;
+  }
+
+  /* ========== 分页控制 ========== */
+  .day-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .day-section:not(:first-child) {
+    page-break-before: always !important;
+  }
+
+  .plan-card,
+  .itinerary-item,
+  .local-tips-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* ========== 时间线优化 ========== */
+  .relative.space-y-16 {
+    margin-top: 4mm !important;
+  }
+
+  .space-y-16 > * + * {
+    margin-top: 6mm !important;
+  }
+
+  /* 时间线左侧留白 */
+  .pl-24 {
+    padding-left: 15mm !important;
+  }
+
+  /* 时间线节点 */
+  .absolute.left-6 {
+    left: 5mm !important;
+  }
+
+  /* 时间线竖线 */
+  .absolute.left-8 {
+    left: 6mm !important;
+  }
+
+  /* ========== 文字优化 ========== */
+  p {
+    margin-bottom: 2mm !important;
+    orphans: 3 !important;
+    widows: 3 !important;
+    font-size: 9pt !important;
+  }
+
+  .text-sm {
+    font-size: 8pt !important;
+  }
+
+  .text-xs {
+    font-size: 7pt !important;
+  }
+
+  .text-lg {
+    font-size: 11pt !important;
+  }
+
+  .text-xl {
+    font-size: 12pt !important;
+  }
+
+  .text-2xl {
+    font-size: 14pt !important;
+  }
+
+  .text-3xl {
+    font-size: 16pt !important;
+  }
+
+  .text-4xl {
+    font-size: 18pt !important;
+  }
+
+  .text-5xl,
+  .text-6xl,
+  .text-7xl {
+    font-size: 20pt !important;
+  }
+
+  /* ========== 颜色保留 ========== */
+  .bg-primary {
+    background-color: #2196F3 !important;
+  }
+
+  .bg-white {
+    background-color: white !important;
+  }
+
+  .bg-surface-variant,
+  .bg-gray-50,
+  .bg-gray-100 {
+    background-color: #f5f5f5 !important;
+  }
+
+  .text-primary {
+    color: #2196F3 !important;
+  }
+
+  .text-on-surface {
+    color: #1a1a1a !important;
+  }
+
+  .text-on-surface-variant {
+    color: #666666 !important;
+  }
+
+  .border-primary {
+    border-color: #2196F3 !important;
+  }
+
+  .border-gray-100,
+  .border-gray-200 {
+    border-color: #e5e7eb !important;
+  }
+
+  /* ========== 移除动画和过渡 ========== */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
+  /* ========== 链接样式 ========== */
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+
+  a[href]:after {
+    content: none !important;
+  }
+
+  /* ========== 特殊元素处理 ========== */
+  /* 优化天气卡片 */
+  .bg-on-surface {
+    background-color: #333 !important;
+    color: white !important;
+  }
+
+  /* 优化提示卡片 */
+  .bg-blue-50 {
+    background-color: #e3f2fd !important;
+  }
+
+  .bg-orange-50 {
+    background-color: #fff3e0 !important;
+  }
+
+  .bg-green-50 {
+    background-color: #e8f5e9 !important;
+  }
+
+  .bg-primary\/10 {
+    background-color: rgba(33, 150, 243, 0.1) !important;
+  }
+
+  .bg-primary\/5 {
+    background-color: rgba(33, 150, 243, 0.05) !important;
+  }
+
+  /* ========== 表格优化 ========== */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    page-break-inside: avoid !important;
+  }
+
+  th, td {
+    border: 1px solid #ddd !important;
+    padding: 2mm !important;
+    font-size: 9pt !important;
+  }
+
+  /* ========== Flexbox修复 ========== */
+  .flex {
+    display: block !important;
+  }
+
+  .flex.items-center,
+  .flex.justify-between {
+    display: flex !important;
+  }
+
+  /* 但是打印时某些flex容器需要变成block */
+  .flex.flex-col {
+    display: block !important;
+  }
+
+  .md\:flex-row {
+    flex-direction: column !important;
+  }
+
+  /* ========== 响应式类重置 ========== */
+  .md\:grid-cols-2,
+  .lg\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .md\:order-1,
+  .md\:order-2 {
+    order: 0 !important;
+  }
+
+  /* ========== 确保内容可见 ========== */
+  .opacity-0,
+  .invisible {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* ========== 边框优化 ========== */
+  .border,
+  .border-gray-100 {
+    border: 1px solid #e5e7eb !important;
+  }
+
+  .border-l-4 {
+    border-left: 2pt solid !important;
+  }
+
+  /* ========== 侧边栏内容优化 ========== */
+  .lg\:col-span-4 {
+    margin-top: 6mm !important;
+  }
+
+  /* ========== 页眉页脚（可选） ========== */
+  @page {
+    @bottom-right {
+      content: counter(page) " / " counter(pages);
+      font-size: 8pt;
+      color: #666;
+    }
+  }
+}
