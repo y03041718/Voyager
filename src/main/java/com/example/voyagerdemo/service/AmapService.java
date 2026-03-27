@@ -324,6 +324,62 @@ public class AmapService {
         return pois;
     }
 
+    /**
+     * 使用Haversine公式计算两点间距离（用于文本搜索后计算距离）
+     * @param pois POI列表
+     * @param centerLat 中心点纬度
+     * @param centerLng 中心点经度
+     * @return 更新了距离的POI列表
+     */
+    public List<AmapPOI> calculateDistances(List<AmapPOI> pois, Double centerLat, Double centerLng) {
+        if (centerLat == null || centerLng == null || pois == null || pois.isEmpty()) {
+            return pois;
+        }
+
+        log.info("开始计算 {} 个POI到中心点({}, {})的距离", pois.size(), centerLat, centerLng);
+
+        for (AmapPOI poi : pois) {
+            if (poi.getLocation() != null) {
+                // 使用Haversine公式计算距离
+                double distance = calculateHaversineDistance(
+                    centerLat, centerLng,
+                    poi.getLocation().getLat(), poi.getLocation().getLng()
+                );
+                poi.setDistance((int) distance);
+                log.debug("POI {} 距离中心点 {} 米", poi.getName(), (int) distance);
+            }
+        }
+
+        log.info("距离计算完成");
+        return pois;
+    }
+
+    /**
+     * Haversine公式计算两点间距离（单位：米）
+     * @param lat1 点1纬度
+     * @param lng1 点1经度
+     * @param lat2 点2纬度
+     * @param lng2 点2经度
+     * @return 距离（米）
+     */
+    private double calculateHaversineDistance(double lat1, double lng1, double lat2, double lng2) {
+        final double EARTH_RADIUS = 6371000; // 地球半径（米）
+
+        // 转换为弧度
+        double lat1Rad = Math.toRadians(lat1);
+        double lat2Rad = Math.toRadians(lat2);
+        double deltaLat = Math.toRadians(lat2 - lat1);
+        double deltaLng = Math.toRadians(lng2 - lng1);
+
+        // Haversine公式
+        double a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                   Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+                   Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return EARTH_RADIUS * c;
+    }
+
     private Integer parseDistanceResponse(String response) {
         try {
             JsonNode root = objectMapper.readTree(response);

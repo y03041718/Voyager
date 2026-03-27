@@ -49,13 +49,13 @@ const Explore: React.FC = () => {
       let results: SearchAllResponse;
       
       if (suggestion && suggestion.location) {
-        console.log('使用周边搜索，目标地:', suggestion.location);
-        // 如果有具体位置，进行周边搜索（一次获取三类数据）
-        // 周边搜索会自动返回距离目标地的距离
-        results = await apiService.getNearbyAllPOI(suggestion.location, 3000);
+        console.log('选中POI，使用文本搜索+距离计算，中心点:', suggestion.location);
+        // 使用文本搜索，并传递中心点坐标来计算距离
+        // 这样搜索范围更广（不限于3km），且所有结果都有距离信息
+        results = await apiService.searchAllPOI(keyword, '京都', suggestion.location);
       } else {
-        console.log('使用关键词搜索:', keyword);
-        // 关键词搜索，不传递坐标（因为没有明确的目标地）
+        console.log('使用关键词搜索（无中心点）:', keyword);
+        // 纯关键词搜索，不计算距离
         results = await apiService.searchAllPOI(keyword, '京都');
       }
       

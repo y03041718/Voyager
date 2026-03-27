@@ -75,13 +75,17 @@ public class AmapController {
 
     /**
      * 关键词搜索 - 一次返回三类数据
+     * 如果提供了中心点坐标，会计算每个POI到中心点的距离
      */
     @GetMapping("/search-all")
     public ResponseEntity<SearchAllResponse> searchAll(
             @RequestParam String keyword,
-            @RequestParam(required = false) String city) {
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) Double centerLat,
+            @RequestParam(required = false) Double centerLng) {
         try {
-            log.info("收到搜索全部类型请求 - keyword: {}, city: {}", keyword, city);
+            log.info("收到搜索全部类型请求 - keyword: {}, city: {}, 中心点: ({}, {})", 
+                    keyword, city, centerLat, centerLng);
             
             SearchAllResponse response = new SearchAllResponse();
             
@@ -97,6 +101,14 @@ public class AmapController {
             log.info("开始搜索餐厅...");
             List<AmapPOI> restaurants = amapService.searchPOI(keyword, city, "050000");
             log.info("餐厅搜索完成，找到 {} 个结果", restaurants.size());
+            
+            // 如果提供了中心点坐标，计算距离
+            if (centerLat != null && centerLng != null) {
+                log.info("计算到中心点的距离...");
+                hotels = amapService.calculateDistances(hotels, centerLat, centerLng);
+                attractions = amapService.calculateDistances(attractions, centerLat, centerLng);
+                restaurants = amapService.calculateDistances(restaurants, centerLat, centerLng);
+            }
             
             response.setHotels(hotels);
             response.setAttractions(attractions);

@@ -130,14 +130,25 @@ class ApiService {
     return response.json();
   }
 
-  // 一次搜索所有类型（关键词搜索，不计算距离）
-  async searchAllPOI(keyword: string, city?: string): Promise<SearchAllResponse> {
+  // 一次搜索所有类型（关键词搜索，可选计算距离）
+  async searchAllPOI(
+    keyword: string, 
+    city?: string, 
+    centerLocation?: { lat: number; lng: number }
+  ): Promise<SearchAllResponse> {
     const params = new URLSearchParams({
       keyword,
-      ...(city && { city })
+      ...(city && { city }),
+      ...(centerLocation && { 
+        centerLat: centerLocation.lat.toString(),
+        centerLng: centerLocation.lng.toString()
+      })
     });
 
     console.log('发起关键词搜索请求:', `${API_BASE_URL}/amap/search-all?${params}`);
+    if (centerLocation) {
+      console.log('使用中心点坐标:', centerLocation);
+    }
 
     const response = await fetch(`${API_BASE_URL}/amap/search-all?${params}`, {
       headers: this.getHeaders()
