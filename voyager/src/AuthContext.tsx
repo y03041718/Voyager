@@ -20,18 +20,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     // 检查本地存储的认证状态
-    const userData = localStorage.getItem('userData');
-    
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-        setIsAuthenticated(true);
-      } catch (error) {
-        // 清除无效数据
-        localStorage.removeItem('userData');
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('userData');
+      
+      console.log('AuthContext: 检查认证状态', { hasToken: !!token, hasUserData: !!userData });
+      
+      if (token && userData) {
+        try {
+          const user = JSON.parse(userData);
+          setUser(user);
+          setIsAuthenticated(true);
+          console.log('AuthContext: 已恢复登录状态', user);
+        } catch (error) {
+          console.error('AuthContext: 恢复登录状态失败', error);
+          // 清除无效数据
+          localStorage.removeItem('userData');
+          localStorage.removeItem('token');
+        }
+      } else {
+        console.log('AuthContext: 未找到登录信息');
       }
-    }
-    setLoading(false);
+      
+      setLoading(false);
+    };
+    
+    checkAuth();
   }, []);
 
   const login = async (credentials: LoginRequest) => {

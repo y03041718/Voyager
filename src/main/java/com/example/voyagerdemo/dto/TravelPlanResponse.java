@@ -5,8 +5,10 @@ import java.util.List;
 
 @Data
 public class TravelPlanResponse {
+    private String title;        // 行程标题（AI生成）
     private String destination;  // 目的地城市名
     private List<DayPlan> days;
+    private LocalTips localTips;  // 当地特色与提示（整个行程共用）
     
     @Data
     public static class DayPlan {
@@ -14,7 +16,6 @@ public class TravelPlanResponse {
         private String date;
         private List<Plan> plans;
         private Weather weather;  // 每日天气信息
-        private LocalTips localTips;  // 当地特色与提示
     }
     
     @Data

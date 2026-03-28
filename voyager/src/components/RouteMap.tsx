@@ -19,8 +19,8 @@ declare global {
 
 // 高德地图Web服务API Key（从环境变量获取）
 // 在 .env 文件中配置: VITE_AMAP_KEY=your_key
-const AMAP_WEB_KEY = (import.meta as any).env?.VITE_AMAP_KEY || '20f359256476a9ff46086ddedad2e4bd';
-
+// 高德地图Web服务API Key（从环境变量获取）
+const AMAP_WEB_KEY = import.meta.env.VITE_AMAP_KEY;
 const RouteMap: React.FC<RouteMapProps> = ({ waypoints, onRouteCalculated }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
@@ -38,7 +38,7 @@ const RouteMap: React.FC<RouteMapProps> = ({ waypoints, onRouteCalculated }) => 
 
     // 设置安全密钥（如果需要）
     window._AMapSecurityConfig = {
-      securityJsCode: 'YOUR_SECURITY_CODE', // 可选，在高德控制台获取
+      securityJsCode: '5133570b1b8d8b7b1a04e1e5136c4fff', // 可选，在高德控制台获取
     };
 
     const script = document.createElement('script');

@@ -125,6 +125,19 @@ const Profile: React.FC = () => {
     }
   };
 
+  const handleRemoveMember = async (teamId: string, userId: number) => {
+    if (confirm('确定要移除这个成员吗？')) {
+      try {
+        setError('');
+        await removeMember(teamId, userId);
+        alert('成员已移除');
+      } catch (err: any) {
+        setError(err.message || '移除成员失败');
+        alert(err.message || '移除成员失败');
+      }
+    }
+  };
+
   const handleJoinTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (joinInviteCode.trim()) {

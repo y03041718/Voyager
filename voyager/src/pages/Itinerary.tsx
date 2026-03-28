@@ -3,30 +3,32 @@ import {
   Calendar, Clock, Share2, Printer, 
   Download, ChevronRight, Cloud, Navigation,
   Home, Star, Info, ExternalLink, ArrowLeft, Users2, Check,
-  ChevronDown, Sparkles, UtensilsCrossed, Lightbulb
+  ChevronDown, Sparkles, UtensilsCrossed, Lightbulb, Compass, Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSelection } from '../SelectionContext';
-import { useTeams } from '../TeamContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { TravelPlanResponse } from '../types';
-import RouteMap from '../components/RouteMap';
+import StaticRouteMap from '../components/StaticRouteMap';
+import InteractiveRouteMap from '../components/InteractiveRouteMap';
 
 const Itinerary: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { selectedDestinations, tripDetails, generatedPlan, setGeneratedPlan } = useSelection();
-  const { teams, sharePlan } = useTeams();
   const [showShareModal, setShowShareModal] = useState(false);
-  const [sharedTeamId, setSharedTeamId] = useState<string | null>(null);
+  const [sharedTeamId, setSharedTeamId] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState(1);
   const [showLocalTips, setShowLocalTips] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadedPlan, setLoadedPlan] = useState<TravelPlanResponse | null>(null);
-  const [routeDistance, setRouteDistance] = useState<number>(0);
-  const [routeDuration, setRouteDuration] = useState<number>(0);
+  const [showInteractiveMap, setShowInteractiveMap] = useState(false);
+  const [currentTripId, setCurrentTripId] = useState<number | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [myTeams, setMyTeams] = useState<any[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(false);
 
   // 如果有 ID 参数，从 API 加载计划
   useEffect(() => {
@@ -39,24 +41,68 @@ const Itinerary: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const plan = await apiService.getTripPlanDetail(planId);
-      setLoadedPlan(plan);
-      setGeneratedPlan(plan); // 同时更新 context
+      const response = await apiService.getTripPlanDetail(planId);
+      
+      // 后端返回的 response.planData 是 JSON 字符串，需要解析
+      const planData: TravelPlanResponse = JSON.parse(response.planData);
+      
+      setLoadedPlan(planData);
+      setGeneratedPlan(planData); // 同时更新 context
+      setCurrentTripId(planId); // 保存行程ID
+      
+      console.log('✅ 成功加载保存的行程:', planData);
     } catch (err) {
-      console.error('加载旅行计划失败:', err);
+      console.error('❌ 加载旅行计划失败:', err);
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleShare = (teamId: string) => {
-    sharePlan('current-trip', teamId, '我');
-    setSharedTeamId(teamId);
-    setTimeout(() => {
-      setShowShareModal(false);
-      setSharedTeamId(null);
-    }, 1500);
+  const handleShare = async (teamId: number) => {
+    // 检查是否有行程ID
+    if (!currentTripId) {
+      setShareError('无法分享：行程未保存');
+      return;
+    }
+
+    try {
+      setShareError(null);
+      await apiService.shareTripPlan(currentTripId, teamId);
+      setSharedTeamId(teamId);
+      
+      // 1.5秒后关闭模态框
+      setTimeout(() => {
+        setShowShareModal(false);
+        setSharedTeamId(null);
+      }, 1500);
+    } catch (err) {
+      console.error('分享行程失败:', err);
+      setShareError(err instanceof Error ? err.message : '分享失败');
+      // 3秒后清除错误
+      setTimeout(() => {
+        setShareError(null);
+      }, 3000);
+    }
+  };
+
+  // 加载用户的团队列表
+  const loadTeams = async () => {
+    try {
+      setLoadingTeams(true);
+      const teams = await apiService.getTeams();
+      setMyTeams(teams);
+    } catch (err) {
+      console.error('加载团队列表失败:', err);
+    } finally {
+      setLoadingTeams(false);
+    }
+  };
+
+  // 打开分享模态框时加载团队
+  const handleOpenShareModal = () => {
+    setShowShareModal(true);
+    loadTeams();
   };
 
   // 打印处理函数
@@ -124,11 +170,11 @@ const Itinerary: React.FC = () => {
   // 获取当前天的天气信息（从AI生成的数据中）
   const weatherInfo = currentDayPlan?.weather || null;
   
-  // 获取当前天的当地特色与提示
-  const localTips = currentDayPlan?.localTips || null;
+  // 获取当前天的当地特色与提示（从顶层获取，整个行程共用）
+  const localTips = generatedPlan?.localTips || null;
   
-  // 构建标题和日期范围 - 从后端返回的数据中获取城市名
-  const tripTitle = generatedPlan.destination || selectedDestinations[0]?.address?.match(/(.+?[市区县])/)?.[1] || 'bbb';
+  // 构建标题和日期范围 - 优先使用AI生成的title，其次使用destination
+  const tripTitle = generatedPlan.title || generatedPlan.destination || selectedDestinations[0]?.address?.match(/(.+?[市区县])/)?.[1] || '旅行计划';
   const dateRange = tripDetails.startDate && tripDetails.endDate 
     ? `${tripDetails.startDate} - ${tripDetails.endDate}` 
     : '未设置日期';
@@ -152,11 +198,6 @@ const Itinerary: React.FC = () => {
   console.log('有位置信息的计划:', mapWaypoints);
   console.log('位置信息数量:', mapWaypoints.length);
 
-  const handleRouteCalculated = (distance: number, duration: number) => {
-    setRouteDistance(distance);
-    setRouteDuration(duration);
-  };
-
   return (
     <div className="bg-[#f8f9fa] min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-12">
@@ -168,7 +209,7 @@ const Itinerary: React.FC = () => {
               <span>AI 智能生成行程</span>
             </div>
             <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-on-surface mb-6 leading-[0.9]">
-              {tripTitle} 之旅
+              {tripTitle}
             </h1>
             <div className="flex flex-wrap items-center gap-6 text-on-surface-variant text-sm font-bold">
               <span className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
@@ -185,12 +226,15 @@ const Itinerary: React.FC = () => {
           </div>
           
           <div className="flex gap-3 no-print">
-            <button 
-              onClick={() => setShowShareModal(true)}
-              className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-on-surface shadow-sm hover:shadow-md transition-all"
-            >
-              <Share2 className="w-6 h-6" />
-            </button>
+            {currentTripId && (
+              <button 
+                onClick={handleOpenShareModal}
+                className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-on-surface shadow-sm hover:shadow-md transition-all"
+                title="分享到团队"
+              >
+                <Share2 className="w-6 h-6" />
+              </button>
+            )}
             <button 
               onClick={handlePrint}
               className="bg-on-surface text-white px-8 h-14 rounded-2xl font-black flex items-center gap-3 hover:bg-primary transition-all shadow-lg"
@@ -373,33 +417,10 @@ const Itinerary: React.FC = () => {
                 <Navigation className="w-5 h-5 text-primary" />
               </div>
               
-              {mapWaypoints.length > 0 ? (
-                <>
-                  <RouteMap 
-                    waypoints={mapWaypoints} 
-                    onRouteCalculated={handleRouteCalculated}
-                  />
-                  {routeDistance > 0 && (
-                    <div className="space-y-4 mt-6">
-                      <div className="flex items-center gap-3 text-sm font-bold text-on-surface-variant">
-                        <div className="w-2 h-2 bg-primary rounded-full" />
-                        <span>总行程距离: {routeDistance} km</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm font-bold text-on-surface-variant">
-                        <div className="w-2 h-2 bg-primary rounded-full" />
-                        <span>预计交通时间: {routeDuration} 分钟</span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="aspect-square bg-surface-variant rounded-3xl flex items-center justify-center">
-                  <div className="text-center p-4">
-                    <Navigation className="w-12 h-12 text-outline mx-auto mb-4" />
-                    <p className="text-sm text-on-surface-variant font-medium">暂无位置信息</p>
-                  </div>
-                </div>
-              )}
+              <StaticRouteMap 
+                waypoints={mapWaypoints} 
+                onFullscreenClick={() => setShowInteractiveMap(true)}
+              />
             </div>
 
             {/* Weather Card */}
@@ -476,8 +497,19 @@ const Itinerary: React.FC = () => {
 
               <p className="text-on-surface-variant text-sm font-medium mb-6">选择一个团队分享您的精彩计划：</p>
 
+              {shareError && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl">
+                  <p className="text-red-600 text-sm font-medium">{shareError}</p>
+                </div>
+              )}
+
               <div className="space-y-3 mb-8">
-                {teams.length === 0 ? (
+                {loadingTeams ? (
+                  <div className="text-center py-8">
+                    <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2"></div>
+                    <p className="text-sm text-outline font-bold">加载团队中...</p>
+                  </div>
+                ) : myTeams.length === 0 ? (
                   <div className="text-center py-8 bg-surface-variant/30 rounded-2xl">
                     <Users2 className="w-10 h-10 text-outline mx-auto mb-2" />
                     <p className="text-sm text-outline font-bold">暂无团队</p>
@@ -489,7 +521,7 @@ const Itinerary: React.FC = () => {
                     </button>
                   </div>
                 ) : (
-                  teams.map((team) => (
+                  myTeams.map((team) => (
                     <button 
                       key={team.id}
                       onClick={() => handleShare(team.id)}
@@ -506,7 +538,7 @@ const Itinerary: React.FC = () => {
                         </div>
                         <div className="text-left">
                           <p className="font-black text-on-surface">{team.name}</p>
-                          <p className="text-[10px] text-outline font-bold uppercase tracking-widest">{team.members.length} 位成员</p>
+                          <p className="text-[10px] text-outline font-bold uppercase tracking-widest">{team.members?.length || 0} 位成员</p>
                         </div>
                       </div>
                       {sharedTeamId === team.id ? (
@@ -533,6 +565,14 @@ const Itinerary: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* 交互式地图模态框 */}
+      {showInteractiveMap && (
+        <InteractiveRouteMap 
+          waypoints={mapWaypoints}
+          onClose={() => setShowInteractiveMap(false)}
+        />
+      )}
     </div>
   );
 };
@@ -543,16 +583,6 @@ const SparkleIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const Users = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
 
-const Compass = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-  </svg>
-);
 
 export default Itinerary;

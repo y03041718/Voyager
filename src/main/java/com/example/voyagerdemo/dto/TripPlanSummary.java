@@ -5,21 +5,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * 行程详情响应
+ * 行程摘要（用于列表展示）
  */
 @Data
-public class TripPlanResponse {
+public class TripPlanSummary {
     private Long id;
-    private Long userId;
     private String title;
     private String destination;
     private LocalDate startDate;
     private LocalDate endDate;
     private String travelers;
     private String style;
-    private String planData;  // JSON字符串
     private String coverImage;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
     private Boolean isOwner;  // 是否是创建者
 }

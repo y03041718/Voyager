@@ -1,4 +1,4 @@
-import { LoginRequest, RegisterRequest, AuthResponse, AmapSearchSuggestion, AmapPOI, SearchAllResponse, TripPlanRequest, TravelPlanResponse, TripPlanSummary } from '../types';
+import { LoginRequest, RegisterRequest, AuthResponse, AmapSearchSuggestion, AmapPOI, SearchAllResponse, TripPlanRequest, TravelPlanResponse, TripPlanSummary, SavedTripPlanResponse } from '../types';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -197,11 +197,11 @@ class ApiService {
     return data;
   }
 
-  // 旅行计划生成API
+  // 旅行计划生成API（会自动保存到数据库）
   async generateTripPlan(request: TripPlanRequest): Promise<TravelPlanResponse> {
     console.log('发起生成旅行计划请求:', request);
 
-    const response = await fetch(`${API_BASE_URL}/trip/generate`, {
+    const response = await fetch(`${API_BASE_URL}/trip-plans/generate`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(request)
@@ -218,39 +218,76 @@ class ApiService {
     return data;
   }
 
-  // 我的行程相关API
+  // 行程管理API
   async getMyTripPlans(): Promise<TripPlanSummary[]> {
-    const response = await fetch(`${API_BASE_URL}/my-trips`, {
+    const response = await fetch(`${API_BASE_URL}/trip-plans/my`, {
       headers: this.getHeaders()
     });
 
     if (!response.ok) {
-      throw new Error('获取旅行计划列表失败');
+      throw new Error('获取我的行程列表失败');
     }
 
     return response.json();
   }
 
-  async getTripPlanDetail(id: number): Promise<TravelPlanResponse> {
-    const response = await fetch(`${API_BASE_URL}/my-trips/${id}`, {
+  async getVisibleTripPlans(): Promise<TripPlanSummary[]> {
+    const response = await fetch(`${API_BASE_URL}/trip-plans/visible`, {
       headers: this.getHeaders()
     });
 
     if (!response.ok) {
-      throw new Error('获取旅行计划详情失败');
+      throw new Error('获取可见行程列表失败');
+    }
+
+    return response.json();
+  }
+
+  async getTripPlanDetail(id: number): Promise<SavedTripPlanResponse> {
+    const response = await fetch(`${API_BASE_URL}/trip-plans/${id}`, {
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error('获取行程详情失败');
     }
 
     return response.json();
   }
 
   async deleteTripPlan(id: number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/my-trips/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/trip-plans/${id}`, {
       method: 'DELETE',
       headers: this.getHeaders()
     });
 
     if (!response.ok) {
-      throw new Error('删除旅行计划失败');
+      throw new Error('删除行程失败');
+    }
+  }
+
+  async shareTripPlan(id: number, teamId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/trip-plans/${id}/share`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ teamId })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || '分享行程失败');
+    }
+  }
+
+  async unshareTripPlan(id: number, teamId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/trip-plans/${id}/share/${teamId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || '取消分享失败');
     }
   }
 
