@@ -33,6 +33,13 @@ public class TravelPlanResponse {
         private String level;
         private String cost;
         private String tel;
+        private Location location;  // 位置信息
+    }
+    
+    @Data
+    public static class Location {
+        private Double lat;
+        private Double lng;
     }
     
     @Data

@@ -15,6 +15,7 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
   className = ""
 }) => {
   const [keyword, setKeyword] = useState('');
+  const [originalKeyword, setOriginalKeyword] = useState(''); // 保存原始关键字
   const [suggestions, setSuggestions] = useState<AmapSearchSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -71,6 +72,7 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setKeyword(value);
+    setOriginalKeyword(value); // 保存用户输入的原始关键字
     setShowSuggestions(true);
   };
 
@@ -101,7 +103,17 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
   };
 
   const handleSuggestionClick = (suggestion: AmapSearchSuggestion) => {
-    handleSearch(suggestion.name, suggestion);
+    console.log('选中POI:', suggestion.name);
+    console.log('原始关键字:', originalKeyword);
+    
+    // 更新搜索框显示为POI名称
+    setKeyword(suggestion.name);
+    
+    // 使用原始关键字进行搜索，但传递suggestion用于计算距离
+    const searchKeyword = originalKeyword.trim() || suggestion.name;
+    console.log('实际搜索关键字:', searchKeyword);
+    
+    handleSearch(searchKeyword, suggestion);
   };
 
   const handleRecentSearchClick = (recentSearch: string) => {

@@ -26,24 +26,37 @@ const TripPlanner: React.FC = () => {
     setIsGenerating(true);
     
     try {
-      // 使用高德逆地理编码API获取城市名
+      // 从选中的POI中提取城市名
       let destination = '未知城市';
       const firstPlace = selectedDestinations[0];
       
-      if (firstPlace?.location) {
-        try {
-          destination = await apiService.getCityName(firstPlace.location.lat, firstPlace.location.lng);
-          console.log('通过逆地理编码获取城市名:', destination);
-        } catch (error) {
-          console.error('获取城市名失败，使用降级方案:', error);
-          // 降级方案：从地址提取
-          if (firstPlace.address) {
-            const cityMatch = firstPlace.address.match(/([^省]+?市)/);
-            if (cityMatch) {
-              destination = cityMatch[1];
-            }
-          }
+      if (firstPlace) {
+        // 优先使用cityname字段（最准确）
+        if (firstPlace.cityname) {
+          destination = firstPlace.cityname;
+          console.log('从POI的cityname字段获取城市名:', destination);
         }
+        // 其次使用adname字段（区域名）
+        else if (firstPlace.adname) {
+          destination = firstPlace.adname;
+          console.log('从POI的adname字段获取区域名:', destination);
+        }
+        // 最后从address提取
+        else if (firstPlace.address) {
+          const cityMatch = firstPlace.address.match(/^(.+?[省市])?(.+?[市区县])/);
+          if (cityMatch) {
+            destination = cityMatch[2] || cityMatch[1] || '未知城市';
+            destination = destination.replace(/[市区县]$/, '');
+          }
+          console.log('从POI地址提取城市名:', destination);
+        }
+        
+        console.log('最终城市名:', destination);
+        console.log('POI信息:', {
+          cityname: firstPlace.cityname,
+          adname: firstPlace.adname,
+          address: firstPlace.address
+        });
       }
       
       // 构建请求数据

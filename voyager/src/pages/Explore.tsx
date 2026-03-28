@@ -41,7 +41,11 @@ const Explore: React.FC = () => {
   }, []);
 
   const handleSearch = async (keyword: string, suggestion?: AmapSearchSuggestion) => {
-    console.log('开始搜索:', { keyword, suggestion });
+    console.log('=== 搜索开始 ===');
+    console.log('关键字:', keyword);
+    console.log('选中的POI:', suggestion?.name);
+    console.log('POI位置:', suggestion?.location);
+    
     setLoading(true);
     setShowMockData(false);
     
@@ -49,9 +53,13 @@ const Explore: React.FC = () => {
       let results: SearchAllResponse;
       
       if (suggestion && suggestion.location) {
-        console.log('选中POI，使用文本搜索+距离计算，中心点:', suggestion.location);
-        // 使用文本搜索，并传递中心点坐标来计算距离
-        // 这样搜索范围更广（不限于3km），且所有结果都有距离信息
+        console.log('✅ 使用优化搜索逻辑:');
+        console.log('  - 搜索关键字:', keyword, '(用于文本搜索)');
+        console.log('  - 中心点:', suggestion.name, '(用于计算距离)');
+        console.log('  - 坐标:', suggestion.location);
+        
+        // 使用关键字进行文本搜索，并传递POI坐标来计算距离
+        // 这样可以搜索到更多相关结果，且都有距离信息
         results = await apiService.searchAllPOI(keyword, '京都', suggestion.location);
       } else {
         console.log('使用关键词搜索（无中心点）:', keyword);
@@ -74,6 +82,7 @@ const Explore: React.FC = () => {
       ];
       saveAllSearchResults(allDestinations);
       console.log('已保存所有搜索结果到Context，共', allDestinations.length, '个POI');
+      console.log('=== 搜索完成 ===');
       
     } catch (error) {
       console.error('搜索失败:', error);
@@ -105,6 +114,8 @@ const Explore: React.FC = () => {
       image: poi.photos && poi.photos.length > 0 ? poi.photos[0] : `https://picsum.photos/seed/${poi.id}/400/300`,
       type: type,
       address: poi.address,
+      cityname: poi.cityname,  // 保存城市名
+      adname: poi.adname,      // 保存区域名
       location: poi.location ? {
         lat: poi.location.lat,
         lng: poi.location.lng

@@ -11,6 +11,7 @@ import { useTeams } from '../TeamContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { TravelPlanResponse } from '../types';
+import RouteMap from '../components/RouteMap';
 
 const Itinerary: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +25,8 @@ const Itinerary: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadedPlan, setLoadedPlan] = useState<TravelPlanResponse | null>(null);
+  const [routeDistance, setRouteDistance] = useState<number>(0);
+  const [routeDuration, setRouteDuration] = useState<number>(0);
 
   // 如果有 ID 参数，从 API 加载计划
   useEffect(() => {
@@ -133,6 +136,26 @@ const Itinerary: React.FC = () => {
   console.log('当前选中天:', selectedDay);
   console.log('当前天计划:', currentDayPlan);
   console.log('过滤后的计划数量:', filteredPlans.length);
+
+  // 构建路线地图的途经点
+  const mapWaypoints = filteredPlans
+    .filter(plan => plan.location)
+    .map(plan => ({
+      name: plan.name,
+      location: plan.location!
+    }));
+
+  console.log('=== 路线地图调试信息 ===');
+  console.log('当前天的所有计划:', filteredPlans);
+  console.log('第一个计划的详细信息:', filteredPlans[0]);
+  console.log('第一个计划是否有location字段:', filteredPlans[0]?.location);
+  console.log('有位置信息的计划:', mapWaypoints);
+  console.log('位置信息数量:', mapWaypoints.length);
+
+  const handleRouteCalculated = (distance: number, duration: number) => {
+    setRouteDistance(distance);
+    setRouteDuration(duration);
+  };
 
   return (
     <div className="bg-[#f8f9fa] min-h-screen">
@@ -349,29 +372,34 @@ const Itinerary: React.FC = () => {
                 <h3 className="text-xl font-black tracking-tight">路线地图</h3>
                 <Navigation className="w-5 h-5 text-primary" />
               </div>
-              <div className="aspect-square bg-surface-variant rounded-3xl mb-6 overflow-hidden relative group">
-                <img 
-                  src="https://picsum.photos/seed/map/400/400" 
-                  alt="Map" 
-                  className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <button className="bg-white text-on-surface px-6 py-3 rounded-2xl font-black shadow-xl flex items-center gap-2 hover:bg-primary hover:text-white transition-all">
-                    查看完整地图 <ExternalLink className="w-4 h-4" />
-                  </button>
+              
+              {mapWaypoints.length > 0 ? (
+                <>
+                  <RouteMap 
+                    waypoints={mapWaypoints} 
+                    onRouteCalculated={handleRouteCalculated}
+                  />
+                  {routeDistance > 0 && (
+                    <div className="space-y-4 mt-6">
+                      <div className="flex items-center gap-3 text-sm font-bold text-on-surface-variant">
+                        <div className="w-2 h-2 bg-primary rounded-full" />
+                        <span>总行程距离: {routeDistance} km</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm font-bold text-on-surface-variant">
+                        <div className="w-2 h-2 bg-primary rounded-full" />
+                        <span>预计交通时间: {routeDuration} 分钟</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="aspect-square bg-surface-variant rounded-3xl flex items-center justify-center">
+                  <div className="text-center p-4">
+                    <Navigation className="w-12 h-12 text-outline mx-auto mb-4" />
+                    <p className="text-sm text-on-surface-variant font-medium">暂无位置信息</p>
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-sm font-bold text-on-surface-variant">
-                  <div className="w-2 h-2 bg-primary rounded-full" />
-                  <span>总行程距离: 12.4 km</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm font-bold text-on-surface-variant">
-                  <div className="w-2 h-2 bg-primary rounded-full" />
-                  <span>预计交通时间: 45 分钟</span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Weather Card */}
@@ -418,9 +446,6 @@ const Itinerary: React.FC = () => {
                     </div>
                     <h4 className="font-black text-lg mb-1 group-hover:text-primary transition-colors">{hotel.name}</h4>
                     <p className="text-sm text-on-surface-variant font-medium mb-4">{hotel.address || '地址未知'}</p>
-                    <button className="w-full py-3 bg-surface-variant rounded-xl font-black text-sm hover:bg-primary/10 hover:text-primary transition-all">
-                      查看订单详情
-                    </button>
                   </div>
                 ))}
               </div>

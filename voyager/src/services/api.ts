@@ -254,6 +254,7 @@ class ApiService {
     }
   }
 
+
   // 用户资料相关API
   async getProfile(): Promise<any> {
     const token = localStorage.getItem('token');
@@ -445,6 +446,58 @@ class ApiService {
     }
 
     return response.json();
+  }
+
+  // 路线规划相关API
+  async getDirections(origin: string, destination: string, strategy: string = '0'): Promise<any> {
+    const params = new URLSearchParams({
+      origin,
+      destination,
+      strategy
+    });
+
+    const response = await fetch(`${API_BASE_URL}/amap/directions?${params}`, {
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error('路线规划失败');
+    }
+
+    return response.json();
+  }
+
+  async getMultiPointDirections(waypoints: string[]): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/amap/directions/multi`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(waypoints)
+    });
+
+    if (!response.ok) {
+      throw new Error('多点路线规划失败');
+    }
+
+    return response.json();
+  }
+
+  async generateStaticMap(waypoints: string[], width: number = 800, height: number = 600): Promise<string> {
+    const params = new URLSearchParams({
+      width: width.toString(),
+      height: height.toString()
+    });
+
+    const response = await fetch(`${API_BASE_URL}/amap/static-map?${params}`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(waypoints)
+    });
+
+    if (!response.ok) {
+      throw new Error('生成静态地图失败');
+    }
+
+    return response.text();
   }
 }
 

@@ -166,6 +166,14 @@ public class AmapService {
                         amapPOI.setName(poi.has("name") ? poi.get("name").asText() : "");
                         amapPOI.setType(poi.has("type") ? poi.get("type").asText() : "");
                         amapPOI.setAddress(poi.has("address") ? poi.get("address").asText() : "");
+                        
+                        // 城市名和区域名
+                        if (poi.has("cityname") && !poi.get("cityname").asText().isEmpty()) {
+                            amapPOI.setCityname(poi.get("cityname").asText());
+                        }
+                        if (poi.has("adname") && !poi.get("adname").asText().isEmpty()) {
+                            amapPOI.setAdname(poi.get("adname").asText());
+                        }
 
                         // 电话
                         if (poi.has("tel") && !poi.get("tel").asText().isEmpty()) {
@@ -407,6 +415,112 @@ public class AmapService {
         }
 
         return null;
+    }
+
+    /**
+     * 路线规划 - 步行/驾车/公交
+     * @param origin 起点坐标 "经度,纬度"
+     * @param destination 终点坐标 "经度,纬度"
+     * @param strategy 路线策略：0-速度优先（时间），1-费用优先（不走收费路段），2-距离优先，3-不走高速
+     * @return 路线规划结果
+     */
+    public JsonNode getDirections(String origin, String destination, String strategy) {
+        try {
+            WebClient webClient = webClientBuilder.build();
+
+            String response = webClient.get()
+                    .uri(baseUrl + "/direction/driving?key={key}&origin={origin}&destination={destination}&strategy={strategy}&extensions=all",
+                            amapKey, origin, destination, strategy != null ? strategy : "0")
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            return objectMapper.readTree(response);
+        } catch (Exception e) {
+            log.error("路线规划失败: origin={}, destination={}", origin, destination, e);
+            return null;
+        }
+    }
+
+    /**
+     * 批量路线规划 - 多个途经点
+     * @param waypoints 途经点列表（经纬度坐标）
+     * @return 路线规划结果
+     */
+    public JsonNode getMultiPointDirections(List<String> waypoints) {
+        if (waypoints == null || waypoints.size() < 2) {
+            log.error("途经点数量不足，至少需要2个点");
+            return null;
+        }
+
+        try {
+            // 构建完整路线：起点 -> 途经点1 -> 途经点2 -> ... -> 终点
+            JsonNode fullRoute = null;
+            int totalDistance = 0;
+            int totalDuration = 0;
+
+            for (int i = 0; i < waypoints.size() - 1; i++) {
+                String origin = waypoints.get(i);
+                String destination = waypoints.get(i + 1);
+                
+                JsonNode segment = getDirections(origin, destination, "0");
+                if (segment != null && "1".equals(segment.path("status").asText())) {
+                    JsonNode route = segment.path("route");
+                    totalDistance += route.path("paths").get(0).path("distance").asInt();
+                    totalDuration += route.path("paths").get(0).path("duration").asInt();
+                    
+                    if (fullRoute == null) {
+                        fullRoute = segment;
+                    }
+                }
+            }
+
+            // 构建汇总结果
+            if (fullRoute != null) {
+                ((com.fasterxml.jackson.databind.node.ObjectNode) fullRoute.path("route"))
+                    .put("total_distance", totalDistance)
+                    .put("total_duration", totalDuration);
+            }
+
+            return fullRoute;
+        } catch (Exception e) {
+            log.error("多点路线规划失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 生成静态地图URL（用于打印和分享）
+     * @param waypoints 途经点列表
+     * @param width 图片宽度
+     * @param height 图片高度
+     * @return 静态地图URL
+     */
+    public String generateStaticMapUrl(List<String> waypoints, int width, int height) {
+        if (waypoints == null || waypoints.isEmpty()) {
+            return null;
+        }
+
+        try {
+            // 构建路径参数
+            StringBuilder pathBuilder = new StringBuilder();
+            for (int i = 0; i < waypoints.size(); i++) {
+                if (i > 0) pathBuilder.append(";");
+                pathBuilder.append(waypoints.get(i));
+            }
+
+            // 构建标记参数（起点和终点）
+            String markers = String.format("mid,0xFF0000,A:%s|mid,0x00FF00,B:%s", 
+                waypoints.get(0), waypoints.get(waypoints.size() - 1));
+
+            return String.format(
+                "https://restapi.amap.com/v3/staticmap?key=%s&size=%dx%d&paths=5,0x0000FF,1,:%s&markers=%s&zoom=12",
+                amapKey, width, height, pathBuilder.toString(), markers
+            );
+        } catch (Exception e) {
+            log.error("生成静态地图URL失败", e);
+            return null;
+        }
     }
 
     /**

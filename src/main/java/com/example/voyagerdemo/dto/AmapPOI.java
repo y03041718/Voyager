@@ -14,6 +14,8 @@ public class AmapPOI {
     private String name;
     private String type;
     private String address;
+    private String cityname;  // 城市名
+    private String adname;    // 区域名
     private Location location;
     private String tel;
     private Double rating;

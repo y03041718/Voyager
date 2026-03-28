@@ -25,6 +25,7 @@ public class TripPlanService {
 
     private final QwenService qwenService;
     private final ObjectMapper objectMapper;
+
     private final UserService userService;
 
     /**
@@ -65,11 +66,9 @@ public class TripPlanService {
         // 6. 设置目的地城市名
         response.setDestination(request.getDestination());
         log.info("设置目的地城市名: {}", request.getDestination());
-        
+
         // 7. 填充POI完整信息
         enrichWithPoiData(response, poiMap);
-
-
 
         log.info("旅行计划生成完成，共{}天", response.getDays().size());
         return response;
@@ -84,15 +83,25 @@ public class TripPlanService {
             return;
         }
 
+        int totalPlans = 0;
+        int plansWithLocation = 0;
+
+        log.info("📍 开始填充POI数据，POI映射表大小: {}", poiMap.size());
+
         for (TravelPlanResponse.DayPlan day : response.getDays()) {
             if (day.getPlans() == null) {
                 continue;
             }
 
             for (TravelPlanResponse.Plan plan : day.getPlans()) {
+                totalPlans++;
+
                 // 如果AI返回了ID，从POI映射表中获取完整信息
                 if (plan.getId() != null && poiMap.containsKey(plan.getId())) {
                     TripPlanRequest.SelectedPlace poi = poiMap.get(plan.getId());
+
+                    log.debug("处理计划: name={}, id={}", plan.getName(), plan.getId());
+
                     plan.setImage(poi.getImage());
                     plan.setRating(poi.getRating());
                     plan.setAddress(poi.getAddress());
@@ -100,6 +109,19 @@ public class TripPlanService {
                     plan.setLevel(poi.getLevel());
                     plan.setCost(poi.getCost());
                     plan.setTel(poi.getTel());
+
+                    // ✅ 设置位置信息
+                    if (poi.getLocation() != null && poi.getLocation().getLat() != null && poi.getLocation().getLng() != null) {
+                        TravelPlanResponse.Location location = new TravelPlanResponse.Location();
+                        location.setLat(poi.getLocation().getLat());
+                        location.setLng(poi.getLocation().getLng());
+                        plan.setLocation(location);
+                        plansWithLocation++;
+                        log.info("✅ 已设置位置信息: {} (lat={}, lng={})",
+                                plan.getName(), location.getLat(), location.getLng());
+                    } else {
+                        log.warn("⚠️ POI没有位置信息: {} (id={})", poi.getName(), poi.getId());
+                    }
 
                     // 如果AI没有返回name，使用POI的name
                     if (plan.getName() == null || plan.getName().isEmpty()) {
@@ -110,10 +132,14 @@ public class TripPlanService {
                     if (plan.getImage() == null) {
                         plan.setImage("https://picsum.photos/seed/" + plan.getName() + "/800/600");
                     }
+                    log.warn("⚠️ 未找到POI数据: {} (id={})", plan.getName(), plan.getId());
                 }
             }
         }
+
+        log.info("📍 位置信息统计: {}/{} 个计划有位置信息", plansWithLocation, totalPlans);
     }
+
 
     /**
      * 构建优化的Prompt，强制输出JSON格式
@@ -182,7 +208,7 @@ public class TripPlanService {
                       },
                       "localTips": {
                         "culture": "当地的文化特色描述，100字左右",
-                        "food": ”当地饮食偏好、特色菜品，100字左右",
+                        "food": "当地饮食偏好、特色菜品，100字左右",
                         "tips": "当地当季天气特色、建议穿的衣物和携带物品，100字左右"
                       },
                       "plans": [
@@ -237,7 +263,7 @@ public class TripPlanService {
                 .filter(p -> type.equals(p.getType()))
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * 添加POI列表到prompt
      */

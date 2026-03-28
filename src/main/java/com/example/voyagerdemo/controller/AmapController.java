@@ -4,6 +4,7 @@ import com.example.voyagerdemo.dto.AmapPOI;
 import com.example.voyagerdemo.dto.AmapSearchSuggestion;
 import com.example.voyagerdemo.dto.SearchAllResponse;
 import com.example.voyagerdemo.service.AmapService;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -181,6 +182,70 @@ public class AmapController {
         } catch (Exception e) {
             log.error("获取城市名失败: lat={}, lng={}", lat, lng, e);
             return ResponseEntity.ok("未知城市");
+        }
+    }
+
+    /**
+     * 路线规划 - 两点之间
+     */
+    @GetMapping("/directions")
+    public ResponseEntity<JsonNode> getDirections(
+            @RequestParam String origin,
+            @RequestParam String destination,
+            @RequestParam(defaultValue = "0") String strategy) {
+        try {
+            log.info("路线规划请求 - origin: {}, destination: {}", origin, destination);
+            JsonNode result = amapService.getDirections(origin, destination, strategy);
+            if (result != null) {
+                return ResponseEntity.ok(result);
+            } else {
+                return ResponseEntity.internalServerError().build();
+            }
+        } catch (Exception e) {
+            log.error("路线规划失败", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * 多点路线规划 - 用于行程路线
+     */
+    @PostMapping("/directions/multi")
+    public ResponseEntity<JsonNode> getMultiPointDirections(
+            @RequestBody List<String> waypoints) {
+        try {
+            log.info("多点路线规划请求 - 途经点数量: {}", waypoints.size());
+            JsonNode result = amapService.getMultiPointDirections(waypoints);
+            if (result != null) {
+                return ResponseEntity.ok(result);
+            } else {
+                return ResponseEntity.badRequest().build();
+            }
+        } catch (Exception e) {
+            log.error("多点路线规划失败", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * 生成静态地图URL
+     */
+    @PostMapping("/static-map")
+    public ResponseEntity<String> generateStaticMap(
+            @RequestBody List<String> waypoints,
+            @RequestParam(defaultValue = "800") int width,
+            @RequestParam(defaultValue = "600") int height) {
+        try {
+            log.info("生成静态地图 - 途经点数量: {}, 尺寸: {}x{}", waypoints.size(), width, height);
+            String url = amapService.generateStaticMapUrl(waypoints, width, height);
+            if (url != null) {
+                return ResponseEntity.ok(url);
+            } else {
+                return ResponseEntity.badRequest().build();
+            }
+        } catch (Exception e) {
+            log.error("生成静态地图失败", e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 
