@@ -105,10 +105,179 @@ const Itinerary: React.FC = () => {
     loadTeams();
   };
 
-  // 打印处理函数
-  const handlePrint = () => {
-    window.print();
+  // PDF导出处理函数
+  // 纯jsPDF精美排版导出PDF（无截图、无oklch报错、排版精致）
+  const handlePrint = async () => {
+    try {
+      const jsPDF = (await import('jspdf')).default;
+      // 初始化A4竖版PDF，单位毫米
+      const pdf = new jsPDF('p', 'mm', 'a4');
+
+      // 基础边距与行距设定，保证排版规整
+      const marginLeft = 20;
+      const marginRight = 20;
+      let yPos = 25;
+      const lineHeight = 8;
+      const contentWidth = 210 - marginLeft - marginRight;
+
+      const fontUrl1 = '/font/HYshangweishoushuW.ttF';
+      const fontUrl = '/font/xingshu.TTF';
+
+      await pdf.addFont(fontUrl, 'xingshu', 'normal');
+      await pdf.addFont(fontUrl1, 'hy', 'bold');
+
+      // --------------------------
+      // 顶部标题栏（精致底色+标题）
+      // --------------------------
+      pdf.setFillColor(100,149,237); // 主色调，替代oklch，视觉统一
+      pdf.rect(10, 15, 190, 12, 'F');
+      pdf.setFont('hy', 'bold');
+      pdf.setFontSize(22);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text('旅行行程单', 105, 23, { align: 'center' });
+
+      // --------------------------
+      // 行程基础信息（规整排版）
+      // --------------------------
+      yPos += 15;
+      pdf.setFont('xingshu', 'normal');
+      pdf.setFontSize(16);
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(`行程：${tripTitle || '定制旅行计划'}`, marginLeft, yPos);
+
+      yPos += lineHeight + 2;
+      pdf.setFontSize(12);
+      pdf.setTextColor(55, 65, 81);
+      pdf.text(`出行日期：${dateRange || '未设置'}`, marginLeft, yPos);
+      pdf.text(`出行成员：${tripDetails.travelers || 2}`, 105, yPos);
+
+      yPos += lineHeight;
+      pdf.text(`旅行风格：${tripDetails.style || '休闲漫游'}`, marginLeft, yPos);
+      pdf.text(`总计天数：${currentPlan?.days?.length || 0}天`, 105, yPos);
+
+      // 分隔线
+      yPos += 8;
+      pdf.setDrawColor(200, 200, 200);
+      pdf.setLineWidth(0.6);
+      pdf.line(marginLeft, yPos, 210 - marginRight, yPos);
+
+      // --------------------------
+      // 每日行程详情（分天清晰排版）
+      // --------------------------
+      currentPlan.days.forEach((dayPlan, idx) => {
+        // 换页判断，避免内容断层
+        if (yPos > 260) {
+          pdf.addPage();
+          yPos = 20;
+        }
+
+        yPos += 12;
+        // 每日标题栏
+        pdf.setFillColor(240,248,255);
+        pdf.rect(marginLeft, yPos - 6, contentWidth, 10, 'F');
+        pdf.setFont('xingshu', 'normal');
+        pdf.setFontSize(14);
+        pdf.setTextColor(59, 130, 246);
+        pdf.text(`Day ${dayPlan.day}`, marginLeft + 5, yPos);
+
+        // 当日天气（如有）
+        if (dayPlan.weather) {
+          pdf.setFontSize(10);
+          pdf.setTextColor(75, 85, 99);
+          pdf.text(
+              `${dayPlan.weather.condition || '晴'} | ${dayPlan.weather.temperature || '24'}℃`,
+              210 - marginRight - 5,
+              yPos,
+              { align: 'right' }
+          );
+        }
+
+        // 当日行程安排
+        const dayPlans = dayPlan.plans?.filter(item => item.type !== 'hotel') || [];
+        yPos += 10;
+
+        dayPlans.forEach((item, index) => {
+          // 换页判断
+          if (yPos > 275) {
+            pdf.addPage();
+            yPos = 20;
+          }
+
+          // 时段标签
+          pdf.setFont('xingshu', 'normal');
+          pdf.setFontSize(11);
+          pdf.setTextColor(59, 130, 246);
+          pdf.text(item.time || '待定', marginLeft + 5, yPos);
+
+          // 景点/美食名称
+          pdf.setFontSize(12);
+          pdf.setTextColor(17, 24, 39);
+          pdf.text(item.name || '未知地点', marginLeft + 30, yPos);
+
+          // 类型与时长
+          yPos += lineHeight;
+          pdf.setFontSize(10);
+          pdf.setTextColor(107, 114, 128);
+          const typeText = item.type === 'attraction' ? '景点' : item.type === 'food' ? '美食' : '游玩';
+          pdf.text(`类型：${typeText} | 时长：${item.duration || '暂无'}`, marginLeft + 30, yPos);
+
+          // 地址
+          if (item.address) {
+            yPos += lineHeight;
+            pdf.text(`地址：${item.address}`, marginLeft + 30, yPos);
+          }
+
+          // 简介（自动换行）
+          if (item.desc) {
+            yPos += lineHeight;
+            pdf.setFontSize(9);
+            pdf.setTextColor(75, 85, 99);
+            const splitDesc = pdf.splitTextToSize(item.desc, contentWidth - 35);
+            pdf.text(splitDesc, marginLeft + 30, yPos);
+            yPos += splitDesc.length * (lineHeight - 1);
+          }
+
+          // 项间距
+          yPos += 6;
+        });
+      });
+
+      // --------------------------
+      // 底部备注（行前小贴士）
+      // --------------------------
+      if (localTips) {
+        if (yPos > 250) {
+          pdf.addPage();
+          yPos = 20;
+        }
+        yPos += 10;
+        pdf.setDrawColor(59, 130, 246);
+        pdf.setLineWidth(0.5);
+        pdf.rect(marginLeft, yPos - 5, contentWidth, 40, 'S');
+        pdf.setFont('xingshu', 'normal');
+        pdf.setFontSize(11);
+        pdf.setTextColor(59, 130, 246);
+        pdf.text('行前小贴士', marginLeft + 5, yPos);
+        pdf.setFontSize(9);
+        pdf.setTextColor(55, 65, 81);
+        const culture = pdf.splitTextToSize(`风土：${localTips.culture?.substring(0,60) || '暂无'}...`, contentWidth-10);
+        pdf.text(culture, marginLeft + 5, yPos + 7);
+        const food = pdf.splitTextToSize(`美食：${localTips.food?.substring(0,60) || '暂无'}...`, contentWidth-10);
+        pdf.text(food, marginLeft + 5, yPos + 15);
+        const tips = pdf.splitTextToSize(`注意：${localTips.tips?.substring(0,60) || '暂无'}...`, contentWidth-10);
+        pdf.text(tips, marginLeft + 5, yPos + 23);
+      }
+
+      // 保存PDF
+      const fileName = `${tripTitle.replace(/[\\/:*?"<>|]/g, '_') || '旅行行程单'}.pdf`;
+      pdf.save(fileName);
+      console.log('✅ 精美排版PDF导出成功');
+    } catch (err) {
+      console.error('❌ PDF导出失败', err);
+      alert('PDF导出失败，请稍后重试');
+    }
   };
+
 
   // 使用加载的计划或 context 中的计划
   const currentPlan = loadedPlan || generatedPlan;
@@ -164,8 +333,10 @@ const Itinerary: React.FC = () => {
   // 过滤掉酒店类型的计划（酒店在右侧单独展示）
   const filteredPlans = currentDayPlan?.plans?.filter(plan => plan.type !== 'hotel') || [];
   
-  // Group destinations by type for the sidebar
-  const hotels = selectedDestinations.filter(d => d.type === 'hotel');
+  // 从当前选中天的计划中提取酒店信息（按天展示）
+  const hotelsFromCurrentDay = currentDayPlan?.plans?.filter(plan => plan.type === 'hotel') || [];
+  const hotelsFromSelection = selectedDestinations.filter(d => d.type === 'hotel');
+  const hotels = hotelsFromCurrentDay.length > 0 ? hotelsFromCurrentDay : hotelsFromSelection;
   
   // 获取当前天的天气信息（从AI生成的数据中）
   const weatherInfo = currentDayPlan?.weather || null;
@@ -174,10 +345,14 @@ const Itinerary: React.FC = () => {
   const localTips = generatedPlan?.localTips || null;
   
   // 构建标题和日期范围 - 优先使用AI生成的title，其次使用destination
-  const tripTitle = generatedPlan.title || generatedPlan.destination || selectedDestinations[0]?.address?.match(/(.+?[市区县])/)?.[1] || '旅行计划';
-  const dateRange = tripDetails.startDate && tripDetails.endDate 
-    ? `${tripDetails.startDate} - ${tripDetails.endDate}` 
-    : '未设置日期';
+  const tripTitle = currentPlan.title || currentPlan.destination || selectedDestinations[0]?.address?.match(/(.+?[市区县])/)?.[1] || '旅行计划';
+  
+  // 优先从生成的计划中获取日期，其次从tripDetails获取
+  const dateRange = (currentPlan.startDate && currentPlan.endDate)
+    ? `${currentPlan.startDate} - ${currentPlan.endDate}`
+    : (tripDetails.startDate && tripDetails.endDate 
+      ? `${tripDetails.startDate} - ${tripDetails.endDate}` 
+      : '未设置日期');
   
   console.log('当前选中天:', selectedDay);
   console.log('当前天计划:', currentDayPlan);
@@ -217,10 +392,10 @@ const Itinerary: React.FC = () => {
                 {dateRange}
               </span>
               <span className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
-                <Users className="w-4 h-4 text-primary" /> {tripDetails.travelers}
+                <Users className="w-4 h-4 text-primary" /> {currentPlan.travelers || tripDetails.travelers || '2人'}
               </span>
               <span className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
-                <Compass className="w-4 h-4 text-primary" /> {tripDetails.style}
+                <Compass className="w-4 h-4 text-primary" /> {currentPlan.style || tripDetails.style || '休闲漫游'}
               </span>
             </div>
           </div>
@@ -239,7 +414,7 @@ const Itinerary: React.FC = () => {
               onClick={handlePrint}
               className="bg-on-surface text-white px-8 h-14 rounded-2xl font-black flex items-center gap-3 hover:bg-primary transition-all shadow-lg"
             >
-              <Printer className="w-6 h-6" /> 打印/导出PDF
+              <Download className="w-6 h-6" /> 导出PDF
             </button>
           </div>
         </header>
@@ -551,16 +726,6 @@ const Itinerary: React.FC = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
-                {['微信', '朋友圈', '微博', '复制链接'].map((platform) => (
-                  <button key={platform} className="flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 bg-surface-variant rounded-2xl flex items-center justify-center text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-all">
-                      <Share2 className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-bold text-outline">{platform}</span>
-                  </button>
-                ))}
-              </div>
             </motion.div>
           </div>
         )}

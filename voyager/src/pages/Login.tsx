@@ -72,7 +72,7 @@ const Login: React.FC = () => {
               {isLogin ? '开启您的旅程' : '加入我们'}
             </h1>
             <p className="text-on-surface-variant text-lg leading-relaxed">
-              加入我们的精英旅行社区，探索非凡世界。
+              加入我们，探索非凡世界。
             </p>
           </header>
 

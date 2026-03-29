@@ -7,6 +7,10 @@ import java.util.List;
 public class TravelPlanResponse {
     private String title;        // 行程标题（AI生成）
     private String destination;  // 目的地城市名
+    private String startDate;    // 开始日期
+    private String endDate;      // 结束日期
+    private String travelers;    // 出行人数
+    private String style;        // 出行风格
     private List<DayPlan> days;
     private LocalTips localTips;  // 当地特色与提示（整个行程共用）
     
