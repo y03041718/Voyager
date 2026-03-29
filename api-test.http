@@ -1,0 +1,32 @@
+### 1. 用户登录（获取Token）
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "zcjy",
+  "password": "123456"
+}
+
+> {%
+    client.global.set("auth_token", response.body.token);
+%}
+
+### 2. 初始化所有区域的POI数据
+POST http://localhost:8080/api/regions/init-all
+Authorization: Bearer {{auth_token}}
+
+### 3. 初始化指定区域的POI数据（例如：区域ID为1）
+POST http://localhost:8080/api/regions/init/1
+Authorization: Bearer {{auth_token}}
+
+### 4. 查询所有省份
+GET http://localhost:8080/api/regions/provinces
+Authorization: Bearer {{auth_token}}
+
+### 5. 查询指定省份的城市
+GET http://localhost:8080/api/regions/cities?province=福建省
+Authorization: Bearer {{auth_token}}
+
+### 6. 查询省市的POI列表
+GET http://localhost:8080/api/regions/pois?province=福建省&city=龙岩市
+Authorization: Bearer {{auth_token}}

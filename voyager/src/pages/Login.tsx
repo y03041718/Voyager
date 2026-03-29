@@ -135,28 +135,28 @@ const Login: React.FC = () => {
               {isLogin ? '立即登录' : '创建账号'}
             </button>
 
-            {/* Divider */}
-            <div className="relative py-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-outline-variant/30"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase tracking-widest">
-                <span className="bg-surface px-4 text-outline font-medium">或通过以下方式继续</span>
-              </div>
-            </div>
+            {/*/!* Divider *!/*/}
+            {/*<div className="relative py-4">*/}
+            {/*  <div className="absolute inset-0 flex items-center">*/}
+            {/*    <div className="w-full border-t border-outline-variant/30"></div>*/}
+            {/*  </div>*/}
+            {/*  <div className="relative flex justify-center text-xs uppercase tracking-widest">*/}
+            {/*    <span className="bg-surface px-4 text-outline font-medium">或通过以下方式继续</span>*/}
+            {/*  </div>*/}
+            {/*</div>*/}
 
-            {/* Social Logins - Changed to WeChat */}
-            <div className="grid grid-cols-1 gap-4">
-              <button 
-                onClick={handleWeChatLogin}
-                className="flex items-center justify-center gap-3 px-4 py-3 bg-surface-container-lowest border border-outline-variant/20 rounded-lg hover:bg-surface-container-high transition-colors duration-200 group" 
-                type="button"
-                disabled={loading}
-              >
-                <MessageCircle className="w-5 h-5 text-[#07C160]" />
-                <span className="text-sm font-semibold text-on-surface">微信快捷登录</span>
-              </button>
-            </div>
+            {/*/!* Social Logins - Changed to WeChat *!/*/}
+            {/*<div className="grid grid-cols-1 gap-4">*/}
+            {/*  <button */}
+            {/*    onClick={handleWeChatLogin}*/}
+            {/*    className="flex items-center justify-center gap-3 px-4 py-3 bg-surface-container-lowest border border-outline-variant/20 rounded-lg hover:bg-surface-container-high transition-colors duration-200 group" */}
+            {/*    type="button"*/}
+            {/*    disabled={loading}*/}
+            {/*  >*/}
+            {/*    <MessageCircle className="w-5 h-5 text-[#07C160]" />*/}
+            {/*    <span className="text-sm font-semibold text-on-surface">微信快捷登录</span>*/}
+            {/*  </button>*/}
+            {/*</div>*/}
 
             {/* Toggle Auth State */}
             <p className="text-center text-sm text-on-surface-variant mt-8">
@@ -173,7 +173,7 @@ const Login: React.FC = () => {
 
           {/* Minimal Footer */}
           <footer className="mt-16 text-[10px] text-outline uppercase tracking-widest text-center">
-            © 2024 Voyager Editorial. 保留所有权利。
+            © 2026 3221306220
           </footer>
         </div>
       </div>
@@ -200,8 +200,7 @@ const Login: React.FC = () => {
                 <div className="w-8 h-8 rounded-full border-2 border-surface flex items-center justify-center bg-primary text-on-primary text-[10px] font-bold">+12</div>
               </div>
               <span className="text-xs font-semibold text-primary flex items-center gap-1 group cursor-pointer">
-                查看指南 
-                <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
+                <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">→查看指南</span>
               </span>
             </div>
           </div>
@@ -216,8 +215,6 @@ const Login: React.FC = () => {
         {/* Floating Decorative Elements */}
         <div className="absolute top-12 right-12 z-20 flex gap-4">
           <nav className="flex gap-8 text-xs font-bold tracking-widest uppercase text-on-primary drop-shadow-sm">
-            <a className="hover:opacity-70 transition-opacity" href="#">首页</a>
-            <a className="hover:opacity-70 transition-opacity" href="#">探索</a>
           </nav>
         </div>
       </div>
