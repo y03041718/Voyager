@@ -26,6 +26,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response, 
                                     FilterChain filterChain) throws ServletException, IOException {
         
+        // 跳过不需要JWT验证的路径
+        String path = request.getRequestURI();
+        if (path.startsWith("/api/auth/") || 
+            path.startsWith("/api/amap/") || 
+            path.startsWith("/api/pics/") ||
+            path.startsWith("/api/fujian-poi/") ||
+            path.startsWith("/api/region-poi/") ||
+            path.equals("/api/error")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         final String authorizationHeader = request.getHeader("Authorization");
 
         String username = null;

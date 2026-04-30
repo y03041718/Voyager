@@ -1,0 +1,36 @@
+### 福建POI采集功能测试
+
+### 1. 初始化福建省城市数据
+POST http://localhost:8080/api/fujian-poi/init-regions
+
+###
+
+### 2. 开始采集所有城市POI（异步）
+POST http://localhost:8080/api/fujian-poi/collect-all
+
+###
+
+### 3. 查询采集进度
+GET http://localhost:8080/api/fujian-poi/status
+
+###
+
+### 4. 查询统计信息
+GET http://localhost:8080/api/fujian-poi/statistics
+
+###
+
+### 5. 采集指定城市（福州市）
+POST http://localhost:8080/api/fujian-poi/collect-city?city=福州市
+
+###
+
+### 6. 采集指定城市（厦门市）
+POST http://localhost:8080/api/fujian-poi/collect-city?city=厦门市
+
+###
+
+### 7. 清空福建省POI数据
+DELETE http://localhost:8080/api/fujian-poi/clear
+
+###

@@ -78,6 +78,36 @@ public class AmapService {
     }
 
     /**
+     * 按关键词搜索POI（支持分页）
+     */
+    public List<AmapPOI> searchPOIsByKeyword(String keyword, String city, int page, int offset) {
+        try {
+            WebClient webClient = webClientBuilder.build();
+
+            String url = baseUrl + "/place/text?key={key}&keywords={keywords}&city={city}&children=0&offset={offset}&page={page}&extensions=all";
+
+            log.info("开始POI搜索 - keyword: {}, city: {}, page: {}, offset: {}", keyword, city, page, offset);
+
+            String response = webClient.get()
+                    .uri(url, amapKey, keyword, city, offset, page)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.debug("高德API响应: {}", response);
+
+            List<AmapPOI> result = parsePOIResponse(response);
+            log.info("解析得到 {} 个POI", result.size());
+
+            return result;
+        } catch (Exception e) {
+            log.error("POI搜索失败: keyword={}, city={}, page={}, offset={}", keyword, city, page, offset, e);
+            return new ArrayList<>();
+        }
+    }
+
+
+    /**
      * 周边搜索
      */
     public List<AmapPOI> getNearbyPOI(Double lat, Double lng, String types, Integer radius) {

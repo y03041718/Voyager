@@ -536,6 +536,42 @@ class ApiService {
 
     return response.text();
   }
+
+  // 区域POI相关API
+  async getProvinces(): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/region-poi/provinces`);
+
+    if (!response.ok) {
+      throw new Error('获取省份列表失败');
+    }
+
+    return response.json();
+  }
+
+  async getCities(province: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/region-poi/cities?province=${encodeURIComponent(province)}`);
+
+    if (!response.ok) {
+      throw new Error('获取城市列表失败');
+    }
+
+    return response.json();
+  }
+
+  async getCityPois(province: string, city: string, type?: string): Promise<any[]> {
+    let url = `${API_BASE_URL}/region-poi/pois?province=${encodeURIComponent(province)}&city=${encodeURIComponent(city)}`;
+    if (type) {
+      url += `&type=${type}`;
+    }
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error('获取城市POI失败');
+    }
+
+    return response.json();
+  }
 }
 
 export const apiService = new ApiService();

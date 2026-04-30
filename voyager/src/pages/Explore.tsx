@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { MapPin, Star, Heart, CheckCircle2 } from 'lucide-react';
+import { MapPin, Star, Heart, CheckCircle2, Map, List } from 'lucide-react';
 import { MOCK_DESTINATIONS } from '../constants';
 import { motion } from 'motion/react';
 import { useSelection } from '../SelectionContext';
 import SmartSearch from '../components/SmartSearch';
 import { apiService } from '../services/api';
-import { AmapSearchSuggestion, AmapPOI, SearchAllResponse } from '../types';
+import { AmapSearchSuggestion, AmapPOI, SearchAllResponse, ProvinceInfo, CityInfo, RegionPoi } from '../types';
 
 const Explore: React.FC = () => {
   const { selectedDestinations, toggleSelection, setAllSearchResults: saveAllSearchResults } = useSelection();
@@ -14,6 +14,16 @@ const Explore: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showMockData, setShowMockData] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  // 新增：搜索模式（nearby: 周边搜索, region: 区域推荐）
+  const [searchMode, setSearchMode] = useState<'nearby' | 'region'>('nearby');
+  
+  // 新增：区域推荐相关状态
+  const [provinces, setProvinces] = useState<ProvinceInfo[]>([]);
+  const [cities, setCities] = useState<CityInfo[]>([]);
+  const [regionPois, setRegionPois] = useState<RegionPoi[]>([]);
+  const [selectedProvince, setSelectedProvince] = useState<string>('');
+  const [selectedCity, setSelectedCity] = useState<string>('');
 
   const categories = ['酒店', '景点', '餐厅'];
 
@@ -39,6 +49,93 @@ const Explore: React.FC = () => {
       setUserLocation({ lat: 35.0116, lng: 135.7681 });
     }
   }, []);
+
+  // 新增：加载省份列表
+  React.useEffect(() => {
+    loadProvinces();
+  }, []);
+
+  // 新增：当选择省份时，加载城市列表
+  React.useEffect(() => {
+    if (selectedProvince) {
+      loadCities(selectedProvince);
+      setSelectedCity('');
+      setRegionPois([]);
+    }
+  }, [selectedProvince]);
+
+  // 新增：当选择城市或切换分类时，加载区域POI
+  React.useEffect(() => {
+    if (searchMode === 'region' && selectedProvince && selectedCity) {
+      const type = getCategoryType(activeCategory);
+      loadRegionPois(selectedProvince, selectedCity, type);
+    }
+  }, [searchMode, selectedProvince, selectedCity, activeCategory]);
+
+  // 新增：加载省份列表
+  const loadProvinces = async () => {
+    try {
+      const data = await apiService.getProvinces();
+      setProvinces(data);
+      // 默认选择福建省
+      if (data.length > 0) {
+        const fujian = data.find(p => p.province === '福建省');
+        if (fujian) {
+          setSelectedProvince(fujian.province);
+        }
+      }
+    } catch (error) {
+      console.error('加载省份列表失败:', error);
+    }
+  };
+
+  // 新增：加载城市列表
+  const loadCities = async (province: string) => {
+    try {
+      setLoading(true);
+      const data = await apiService.getCities(province);
+      setCities(data);
+    } catch (error) {
+      console.error('加载城市列表失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 新增：加载区域POI
+  const loadRegionPois = async (province: string, city: string, type: string) => {
+    try {
+      setLoading(true);
+      setShowMockData(false);
+      const data = await apiService.getCityPois(province, city, type);
+      setRegionPois(data);
+      
+      // 保存到Context
+      const destinations = data.map(poi => convertRegionPoiToDestination(poi));
+      saveAllSearchResults(destinations);
+    } catch (error) {
+      console.error('加载区域POI失败:', error);
+      setRegionPois([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 新增：切换搜索模式
+  const handleModeChange = (mode: 'nearby' | 'region') => {
+    setSearchMode(mode);
+    if (mode === 'nearby') {
+      setShowMockData(true);
+      setRegionPois([]);
+    } else {
+      setShowMockData(false);
+      // 如果已选择城市，加载POI
+      if (selectedProvince && selectedCity) {
+        const type = getCategoryType(activeCategory);
+        loadRegionPois(selectedProvince, selectedCity, type);
+      }
+    }
+  };
 
   const handleSearch = async (keyword: string, suggestion?: AmapSearchSuggestion) => {
     console.log('=== 搜索开始 ===');
@@ -126,6 +223,28 @@ const Explore: React.FC = () => {
     };
   };
 
+  // 新增：转换RegionPoi到Destination格式
+  const convertRegionPoiToDestination = (poi: RegionPoi) => {
+    return {
+      id: poi.amapId,
+      name: poi.name,
+      distance: '', // 区域推荐不显示距离
+      rating: poi.rating || 4.5,
+      description: poi.address || '暂无描述',
+      image: poi.photos && poi.photos.length > 0 ? poi.photos[0] : `https://picsum.photos/seed/${poi.amapId}/400/300`,
+      type: poi.type,
+      address: poi.address,
+      location: {
+        lat: poi.locationLat,
+        lng: poi.locationLng
+      },
+      tags: [poi.amapType],
+      starLevel: poi.starLevel,
+      level: poi.level,
+      cost: poi.cost
+    };
+  };
+
   // 根据当前分类获取对应的搜索结果
   const getCurrentCategoryResults = () => {
     if (!allSearchResults) {
@@ -164,7 +283,9 @@ const Explore: React.FC = () => {
         if (activeCategory === '餐厅') return dest.type === 'restaurant';
         return true;
       })
-    : getCurrentCategoryResults();
+    : searchMode === 'region'
+      ? regionPois.map(poi => convertRegionPoiToDestination(poi))
+      : getCurrentCategoryResults();
 
   // 获取每个分类的数量
   const getCategoryCount = (category: string) => {
@@ -196,8 +317,80 @@ const Explore: React.FC = () => {
       <SmartSearch 
         onSearch={handleSearch}
         placeholder="搜索景点、酒店、餐厅..."
-        className="mb-10"
+        className="mb-6"
       />
+
+      {/* 新增：搜索模式切换 */}
+      <div className="mb-6 flex gap-3">
+        <button
+          onClick={() => handleModeChange('nearby')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${
+            searchMode === 'nearby'
+              ? 'bg-primary text-white shadow-lg'
+              : 'bg-surface-variant text-on-surface-variant hover:bg-primary/10'
+          }`}
+        >
+          <Map className="w-4 h-4" />
+          周边搜索
+        </button>
+        <button
+          onClick={() => handleModeChange('region')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${
+            searchMode === 'region'
+              ? 'bg-primary text-white shadow-lg'
+              : 'bg-surface-variant text-on-surface-variant hover:bg-primary/10'
+          }`}
+        >
+          <List className="w-4 h-4" />
+          区域推荐
+        </button>
+      </div>
+
+      {/* 新增：区域选择器（仅在区域推荐模式显示） */}
+      {searchMode === 'region' && (
+        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 省份选择 */}
+            <div>
+              <label className="block text-sm font-bold text-on-surface mb-2">
+                选择省份
+              </label>
+              <select
+                value={selectedProvince}
+                onChange={(e) => setSelectedProvince(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent font-medium"
+              >
+                <option value="">请选择省份</option>
+                {provinces.map((province) => (
+                  <option key={province.id} value={province.province}>
+                    {province.displayName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 城市选择 */}
+            <div>
+              <label className="block text-sm font-bold text-on-surface mb-2">
+                选择城市
+              </label>
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                disabled={!selectedProvince}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent font-medium disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="">请选择城市</option>
+                {cities.map((city) => (
+                  <option key={city.id} value={city.city}>
+                    {city.displayName} ({city.poiCount}个推荐)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Categories */}
       <section className="mb-12 overflow-x-auto no-scrollbar flex gap-4 pb-2">
@@ -317,7 +510,10 @@ const Explore: React.FC = () => {
                         </>
                       )}
                     </div>
-                    <span className="text-xs text-outline font-medium">{dest.distance}</span>
+                    {/* 仅在周边搜索模式显示距离 */}
+                    {searchMode === 'nearby' && dest.distance && (
+                      <span className="text-xs text-outline font-medium">{dest.distance}</span>
+                    )}
                   </div>
                 </div>
               </motion.div>

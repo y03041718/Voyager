@@ -37,6 +37,8 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/amap/**").permitAll()
                         .requestMatchers("/pics/**").permitAll()
+                        .requestMatchers("/fujian-poi/**").permitAll()
+                        .requestMatchers("/region-poi/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
