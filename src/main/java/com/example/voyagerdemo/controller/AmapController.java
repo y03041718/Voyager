@@ -4,6 +4,8 @@ import com.example.voyagerdemo.dto.AmapPOI;
 import com.example.voyagerdemo.dto.AmapSearchSuggestion;
 import com.example.voyagerdemo.dto.SearchAllResponse;
 import com.example.voyagerdemo.service.AmapService;
+import com.example.voyagerdemo.service.PoiCacheService;
+import com.example.voyagerdemo.service.SearchStatService;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,9 +20,11 @@ import java.util.List;
 @Slf4j
 @CrossOrigin(origins = "${cors.allowed-origins}")
 public class AmapController {
-    
+
     private final AmapService amapService;
-    
+    private final PoiCacheService poiCacheService;
+    private final SearchStatService searchStatService;
+
     /**
      * 获取搜索建议
      */
@@ -35,7 +39,7 @@ public class AmapController {
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
     /**
      * POI搜索
      */
@@ -54,7 +58,7 @@ public class AmapController {
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
     /**
      * 周边搜索
      */
@@ -77,6 +81,7 @@ public class AmapController {
     /**
      * 关键词搜索 - 一次返回三类数据
      * 如果提供了中心点坐标，会计算每个POI到中心点的距离
+     * 添加Redis缓存和搜索统计
      */
     @GetMapping("/search-all")
     public ResponseEntity<SearchAllResponse> searchAll(
@@ -85,24 +90,41 @@ public class AmapController {
             @RequestParam(required = false) Double centerLat,
             @RequestParam(required = false) Double centerLng) {
         try {
-            log.info("收到搜索全部类型请求 - keyword: {}, city: {}, 中心点: ({}, {})", 
+            log.info("收到搜索全部类型请求 - keyword: {}, city: {}, 中心点: ({}, {})",
                     keyword, city, centerLat, centerLng);
-            
+
+            // 记录文本搜索统计
+            searchStatService.recordTextSearch(keyword);
+
             SearchAllResponse response = new SearchAllResponse();
-            
-            // 并行搜索三类POI
-            log.info("开始搜索酒店...");
-            List<AmapPOI> hotels = amapService.searchPOI(keyword, city, "100000");
-            log.info("酒店搜索完成，找到 {} 个结果", hotels.size());
-            
-            log.info("开始搜索景点...");
-            List<AmapPOI> attractions = amapService.searchPOI(keyword, city, "110000");
-            log.info("景点搜索完成，找到 {} 个结果", attractions.size());
-            
-            log.info("开始搜索餐厅...");
-            List<AmapPOI> restaurants = amapService.searchPOI(keyword, city, "050000");
-            log.info("餐厅搜索完成，找到 {} 个结果", restaurants.size());
-            
+
+            // 尝试从缓存获取酒店数据
+            List<AmapPOI> hotels = poiCacheService.getTextSearchCache(keyword + ":hotel", city);
+            if (hotels == null) {
+                log.info("开始搜索酒店...");
+                hotels = amapService.searchPOI(keyword, city, "100000");
+                log.info("酒店搜索完成，找到 {} 个结果", hotels.size());
+                poiCacheService.setTextSearchCache(keyword + ":hotel", city, hotels);
+            }
+
+            // 尝试从缓存获取景点数据
+            List<AmapPOI> attractions = poiCacheService.getTextSearchCache(keyword + ":attraction", city);
+            if (attractions == null) {
+                log.info("开始搜索景点...");
+                attractions = amapService.searchPOI(keyword, city, "110000");
+                log.info("景点搜索完成，找到 {} 个结果", attractions.size());
+                poiCacheService.setTextSearchCache(keyword + ":attraction", city, attractions);
+            }
+
+            // 尝试从缓存获取餐厅数据
+            List<AmapPOI> restaurants = poiCacheService.getTextSearchCache(keyword + ":restaurant", city);
+            if (restaurants == null) {
+                log.info("开始搜索餐厅...");
+                restaurants = amapService.searchPOI(keyword, city, "050000");
+                log.info("餐厅搜索完成，找到 {} 个结果", restaurants.size());
+                poiCacheService.setTextSearchCache(keyword + ":restaurant", city, restaurants);
+            }
+
             // 如果提供了中心点坐标，计算距离
             if (centerLat != null && centerLng != null) {
                 log.info("计算到中心点的距离...");
@@ -110,21 +132,21 @@ public class AmapController {
                 attractions = amapService.calculateDistances(attractions, centerLat, centerLng);
                 restaurants = amapService.calculateDistances(restaurants, centerLat, centerLng);
             }
-            
+
             response.setHotels(hotels);
             response.setAttractions(attractions);
             response.setRestaurants(restaurants);
-            
-            log.info("搜索全部类型完成 - 酒店:{}, 景点:{}, 餐厅:{}", 
+
+            log.info("搜索全部类型完成 - 酒店:{}, 景点:{}, 餐厅:{}",
                     hotels.size(), attractions.size(), restaurants.size());
-            
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("搜索全部类型失败: {}", keyword, e);
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
     /**
      * 周边搜索 - 一次返回三类数据（距离是相对于目标地的距离）
      */
@@ -135,36 +157,36 @@ public class AmapController {
             @RequestParam(defaultValue = "3000") Integer radius) {
         try {
             log.info("收到周边搜索全部类型请求 - 目标地: ({}, {}), 半径: {}米", lat, lng, radius);
-            
+
             SearchAllResponse response = new SearchAllResponse();
-            
+
             // 并行搜索三类POI（周边搜索API会自动返回距离目标地的距离）
             log.info("开始搜索周边酒店...");
             List<AmapPOI> hotels = amapService.getNearbyPOI(lat, lng, "100000", radius);
             log.info("周边酒店搜索完成，找到 {} 个结果", hotels.size());
-            
+
             log.info("开始搜索周边景点...");
             List<AmapPOI> attractions = amapService.getNearbyPOI(lat, lng, "110000", radius);
             log.info("周边景点搜索完成，找到 {} 个结果", attractions.size());
-            
+
             log.info("开始搜索周边餐厅...");
             List<AmapPOI> restaurants = amapService.getNearbyPOI(lat, lng, "050000", radius);
             log.info("周边餐厅搜索完成，找到 {} 个结果", restaurants.size());
-            
+
             response.setHotels(hotels);
             response.setAttractions(attractions);
             response.setRestaurants(restaurants);
-            
-            log.info("周边搜索全部类型完成 - 酒店:{}, 景点:{}, 餐厅:{}", 
+
+            log.info("周边搜索全部类型完成 - 酒店:{}, 景点:{}, 餐厅:{}",
                     hotels.size(), attractions.size(), restaurants.size());
-            
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("周边搜索全部类型失败: lat={}, lng={}", lat, lng, e);
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
     /**
      * 根据经纬度获取城市名
      */
@@ -256,15 +278,15 @@ public class AmapController {
     public ResponseEntity<String> testAmapAPI(@RequestParam(defaultValue = "酒店") String keyword) {
         try {
             log.info("测试高德API - keyword: {}", keyword);
-            
+
             // 测试搜索建议
             List<AmapSearchSuggestion> suggestions = amapService.getSearchSuggestions(keyword);
             log.info("搜索建议结果: {} 条", suggestions.size());
-            
+
             // 测试POI搜索
             List<AmapPOI> pois = amapService.searchPOI(keyword, "北京", "");
             log.info("POI搜索结果: {} 条", pois.size());
-            
+
             return ResponseEntity.ok(String.format(
                     "测试成功！\n搜索建议: %d 条\nPOI搜索: %d 条\n第一个建议: %s",
                     suggestions.size(),
@@ -276,7 +298,7 @@ public class AmapController {
             return ResponseEntity.ok("测试失败: " + e.getMessage());
         }
     }
-    
+
     /**
      * 映射前端POI类型到高德地图类型码
      */
@@ -284,7 +306,7 @@ public class AmapController {
         if (frontendType == null) {
             return "";
         }
-        
+
         return switch (frontendType.toLowerCase()) {
             case "hotel", "酒店" -> "100000"; // 住宿服务
             case "attraction", "景点" -> "110000"; // 风景名胜

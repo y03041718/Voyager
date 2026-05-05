@@ -7,13 +7,13 @@ class ApiService {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
-    
+
     // 如果存在token，添加到请求头
     const token = localStorage.getItem('token');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     return headers;
   }
 
@@ -35,7 +35,7 @@ class ApiService {
 
     const data: AuthResponse = await response.json();
     console.log('登录响应数据:', data);
-    
+
     // 保存token到localStorage
     if (data.token) {
       localStorage.setItem('token', data.token);
@@ -64,7 +64,7 @@ class ApiService {
 
     const data: AuthResponse = await response.json();
     console.log('注册响应数据:', data);
-    
+
     // 保存token到localStorage
     if (data.token) {
       localStorage.setItem('token', data.token);
@@ -108,9 +108,9 @@ class ApiService {
   }
 
   async getNearbyPOI(
-    location: { lat: number; lng: number }, 
-    types: string, 
-    radius: number = 3000
+      location: { lat: number; lng: number },
+      types: string,
+      radius: number = 3000
   ): Promise<AmapPOI[]> {
     const params = new URLSearchParams({
       lat: location.lat.toString(),
@@ -132,14 +132,14 @@ class ApiService {
 
   // 一次搜索所有类型（关键词搜索，可选计算距离）
   async searchAllPOI(
-    keyword: string, 
-    city?: string, 
-    centerLocation?: { lat: number; lng: number }
+      keyword: string,
+      city?: string,
+      centerLocation?: { lat: number; lng: number }
   ): Promise<SearchAllResponse> {
     const params = new URLSearchParams({
       keyword,
       ...(city && { city }),
-      ...(centerLocation && { 
+      ...(centerLocation && {
         centerLat: centerLocation.lat.toString(),
         centerLng: centerLocation.lng.toString()
       })
@@ -169,8 +169,8 @@ class ApiService {
 
   // 一次搜索周边所有类型（周边搜索，返回距离目标地的距离）
   async getNearbyAllPOI(
-    location: { lat: number; lng: number }, 
-    radius: number = 3000
+      location: { lat: number; lng: number },
+      radius: number = 3000
   ): Promise<SearchAllResponse> {
     const params = new URLSearchParams({
       lat: location.lat.toString(),
@@ -296,10 +296,10 @@ class ApiService {
   async getProfile(): Promise<any> {
     const token = localStorage.getItem('token');
     console.log('getProfile - Token from localStorage:', token);
-    
+
     const headers = this.getHeaders();
     console.log('getProfile - Request headers:', headers);
-    
+
     const response = await fetch(`${API_BASE_URL}/profile`, {
       headers
     });
@@ -568,6 +568,31 @@ class ApiService {
 
     if (!response.ok) {
       throw new Error('获取城市POI失败');
+    }
+
+    return response.json();
+  }
+
+  // 词云图统计相关API
+  async getTextSearchWordCloud(): Promise<{ text: string; value: number }[]> {
+    const response = await fetch(`${API_BASE_URL}/stat/wordcloud`, {
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error('获取文本搜索词云数据失败');
+    }
+
+    return response.json();
+  }
+
+  async getProvinceSearchWordCloud(): Promise<{ text: string; value: number }[]> {
+    const response = await fetch(`${API_BASE_URL}/stat/provincecloud`, {
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error('获取省市搜索词云数据失败');
     }
 
     return response.json();
